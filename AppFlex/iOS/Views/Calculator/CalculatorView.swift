@@ -8,61 +8,251 @@
 import UIKit
 import SwiftUI
 
-// 导入ServerController
-@_implementationOnly import class AppFlex.ServerController
-
 class CalculatorViewController: UIViewController {
     
     // MARK: - 属性
     
     private let displayLabel = UILabel()
+    private var historyDisplayLabel = UILabel() // 显示历史记录或上一步操作
     private var currentInput = ""
     private var firstOperand: Double?
     private var operation: String?
     private var shouldResetInput = false
-    private var secretTapCount = 0
-    private let maxSecretTaps = 5
     
-    // 添加特殊按键组合检测
+    // 特殊序列变量保留但不显示任何提示
     private var specialSequence: [String] = []
     private let correctSpecialSequence = ["1", "9", "8", "6"]
     
+    // 历史记录部分保留
+    private var calculationHistory: [String] = []
+    private let maxHistoryItems = 10
+    
+    // 主题设置保留
+    private enum CalculatorTheme {
+        case light
+        case dark
+        case colorful
+    }
+    private var currentTheme: CalculatorTheme = .light
+
+    // 计算器模式
+    private enum CalculatorMode {
+        case basic
+        case scientific
+    }
+    private var currentMode: CalculatorMode = .basic
+
+    // 设置按钮
+    private var settingsButton: UIButton!
+    private var historyButton: UIButton!
+    private var modeToggleButton: UIButton!
+    private var themeButton: UIButton!
+
+    // 科学计算按钮容器
+    private var scientificButtonsContainer: UIStackView!
+    private var basicButtonsContainer: UIStackView!
+    
+    // 控制按钮容器 - 声明为属性以便在整个类中访问
+    private var controlButtonsContainer: UIStackView!
+    
+    // 保存布局约束的引用，以便能够激活/停用它们
+    private var basicToControlConstraint: NSLayoutConstraint!
+    private var basicToScientificConstraint: NSLayoutConstraint!
+
     // MARK: - 生命周期方法
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         
-        // 添加长按手势进入真实应用
+        // 修改：使用服务器验证的触发方式
+        
+        // 添加长按手势 - 改为通过服务器验证
         let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(longPressDetected))
         longPressGesture.minimumPressDuration = 3.0 // 3秒长按
         self.view.addGestureRecognizer(longPressGesture)
         
-        // 添加双击手势作为另一种触发方式
+        // 添加双击手势 - 改为通过服务器验证
         let doubleTapGesture = UITapGestureRecognizer(target: self, action: #selector(doubleTapDetected))
         doubleTapGesture.numberOfTapsRequired = 2
         self.view.addGestureRecognizer(doubleTapGesture)
+        
+        // 加载用户偏好设置
+        loadUserPreferences()
+    }
+    
+    // 新增：加载用户偏好设置
+    private func loadUserPreferences() {
+        if let savedTheme = UserDefaults.standard.string(forKey: "calculator_theme") {
+            if savedTheme == "dark" {
+                currentTheme = .dark
+            } else if savedTheme == "colorful" {
+                currentTheme = .colorful
+            } else {
+                currentTheme = .light
+            }
+        }
+        
+        if UserDefaults.standard.bool(forKey: "scientific_mode_enabled") {
+            currentMode = .scientific
+            toggleCalculatorMode()
+        }
+        
+        applyTheme()
+    }
+    
+    // 新增：应用主题
+    private func applyTheme() {
+        switch currentTheme {
+        case .light:
+            view.backgroundColor = .systemBackground
+            displayLabel.backgroundColor = .systemBackground
+            displayLabel.textColor = .black
+            historyDisplayLabel.textColor = .darkGray
+        case .dark:
+            view.backgroundColor = .black
+            displayLabel.backgroundColor = .black
+            displayLabel.textColor = .white
+            historyDisplayLabel.textColor = .lightGray
+        case .colorful:
+            view.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.3, alpha: 1.0)
+            displayLabel.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.3, alpha: 1.0)
+            displayLabel.textColor = .white
+            historyDisplayLabel.textColor = UIColor(red: 0.8, green: 0.8, blue: 1.0, alpha: 1.0)
+        }
+        
+        // 刷新所有按钮样式
+        basicButtonsContainer.arrangedSubviews.forEach { rowStack in
+            if let stackView = rowStack as? UIStackView {
+                stackView.arrangedSubviews.forEach { button in
+                    if let button = button as? UIButton, let title = button.currentTitle {
+                        button.backgroundColor = getButtonColor(forTitle: title)
+                        button.setTitleColor(getTextColor(forTitle: title), for: .normal)
+                    }
+                }
+            }
+        }
+        
+        if scientificButtonsContainer != nil {
+            scientificButtonsContainer.arrangedSubviews.forEach { rowStack in
+                if let stackView = rowStack as? UIStackView {
+                    stackView.arrangedSubviews.forEach { button in
+                        if let button = button as? UIButton, let title = button.currentTitle {
+                            button.backgroundColor = getButtonColor(forTitle: title)
+                            button.setTitleColor(getTextColor(forTitle: title), for: .normal)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 更新控制按钮样式
+        settingsButton.backgroundColor = getButtonColor(forTitle: "设置")
+        historyButton.backgroundColor = getButtonColor(forTitle: "历史")
+        modeToggleButton.backgroundColor = getButtonColor(forTitle: "模式")
+        themeButton.backgroundColor = getButtonColor(forTitle: "主题")
     }
     
     // MARK: - UI设置
     
     private func setupUI() {
         view.backgroundColor = .systemBackground
-        title = "计算器"
+        title = "科学计算器"
         
-        // 设置显示标签
+        // 设置历史显示标签
+        historyDisplayLabel = UILabel()
+        historyDisplayLabel.translatesAutoresizingMaskIntoConstraints = false
+        historyDisplayLabel.textAlignment = .right
+        historyDisplayLabel.font = UIFont.systemFont(ofSize: 18, weight: .light)
+        historyDisplayLabel.text = ""
+        historyDisplayLabel.textColor = .darkGray
+        view.addSubview(historyDisplayLabel)
+        
+        // 设置主显示标签，优化显示长数字的能力
         displayLabel.translatesAutoresizingMaskIntoConstraints = false
         displayLabel.textAlignment = .right
-        displayLabel.font = UIFont.systemFont(ofSize: 48, weight: .light)
+        displayLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 48, weight: .light) // 使用等宽字体
         displayLabel.text = "0"
         displayLabel.adjustsFontSizeToFitWidth = true
-        displayLabel.minimumScaleFactor = 0.5
+        displayLabel.minimumScaleFactor = 0.3 // 允许更小的缩放比例以适应长数字
         displayLabel.backgroundColor = .systemBackground
         displayLabel.layer.cornerRadius = 10
         displayLabel.clipsToBounds = true
         view.addSubview(displayLabel)
         
-        // 布局按钮
+        // 创建控制按钮容器
+        controlButtonsContainer = UIStackView()
+        controlButtonsContainer.translatesAutoresizingMaskIntoConstraints = false
+        controlButtonsContainer.axis = .horizontal
+        controlButtonsContainer.distribution = .fillEqually
+        controlButtonsContainer.spacing = 10
+        view.addSubview(controlButtonsContainer)
+        
+        // 创建设置按钮
+        settingsButton = createControlButton(withTitle: "设置", action: #selector(settingsButtonTapped))
+        historyButton = createControlButton(withTitle: "历史", action: #selector(historyButtonTapped))
+        modeToggleButton = createControlButton(withTitle: "模式", action: #selector(modeToggleButtonTapped))
+        themeButton = createControlButton(withTitle: "主题", action: #selector(themeButtonTapped))
+        
+        controlButtonsContainer.addArrangedSubview(settingsButton)
+        controlButtonsContainer.addArrangedSubview(historyButton)
+        controlButtonsContainer.addArrangedSubview(modeToggleButton)
+        controlButtonsContainer.addArrangedSubview(themeButton)
+        
+        // 创建基础计算器按钮
+        setupBasicCalculatorButtons()
+        
+        // 创建科学计算器按钮（初始隐藏）
+        setupScientificCalculatorButtons()
+        
+        // 创建约束但先不激活
+        basicToControlConstraint = basicButtonsContainer.topAnchor.constraint(equalTo: controlButtonsContainer.bottomAnchor, constant: 10)
+        basicToScientificConstraint = basicButtonsContainer.topAnchor.constraint(equalTo: scientificButtonsContainer.bottomAnchor, constant: 10)
+        
+        // 基础模式下激活相应约束
+        basicToControlConstraint.isActive = true
+        
+        // 设置约束
+        NSLayoutConstraint.activate([
+            historyDisplayLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            historyDisplayLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
+            historyDisplayLabel.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            historyDisplayLabel.heightAnchor.constraint(equalToConstant: 25),
+            
+            displayLabel.topAnchor.constraint(equalTo: historyDisplayLabel.bottomAnchor, constant: 5),
+            displayLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
+            displayLabel.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            displayLabel.heightAnchor.constraint(equalToConstant: 80),
+            
+            controlButtonsContainer.topAnchor.constraint(equalTo: displayLabel.bottomAnchor, constant: 10),
+            controlButtonsContainer.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
+            controlButtonsContainer.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            controlButtonsContainer.heightAnchor.constraint(equalToConstant: 40),
+            
+            basicButtonsContainer.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
+            basicButtonsContainer.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            basicButtonsContainer.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
+        ])
+    }
+    
+    private func createControlButton(withTitle title: String, action: Selector) -> UIButton {
+        let button = UIButton(type: .system)
+        button.setTitle(title, for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        button.backgroundColor = .systemGray5
+        button.setTitleColor(.black, for: .normal)
+        button.layer.cornerRadius = 15
+        button.addTarget(self, action: action, for: .touchUpInside)
+        
+        // 设置按钮按下效果
+        button.addTarget(self, action: #selector(buttonTouchDown(_:)), for: .touchDown)
+        button.addTarget(self, action: #selector(buttonTouchUp(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        
+        return button
+    }
+    
+    // 新增：创建基础计算器按钮
+    private func setupBasicCalculatorButtons() {
         let buttonTitles = [
             ["C", "±", "%", "÷"],
             ["7", "8", "9", "×"],
@@ -71,12 +261,12 @@ class CalculatorViewController: UIViewController {
             ["0", ".", "="]
         ]
         
-        let stackView = UIStackView()
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        stackView.axis = .vertical
-        stackView.distribution = .fillEqually
-        stackView.spacing = 10
-        view.addSubview(stackView)
+        basicButtonsContainer = UIStackView()
+        basicButtonsContainer.translatesAutoresizingMaskIntoConstraints = false
+        basicButtonsContainer.axis = .vertical
+        basicButtonsContainer.distribution = .fillEqually
+        basicButtonsContainer.spacing = 10
+        view.addSubview(basicButtonsContainer)
         
         for row in buttonTitles {
             let rowStackView = UIStackView()
@@ -92,8 +282,16 @@ class CalculatorViewController: UIViewController {
                 
                 // 如果是0按钮，设置特殊样式并保存引用
                 if title == "0" {
+                    // 使用iOS 15兼容的方式设置按钮内容对齐
                     button.contentHorizontalAlignment = .left
-                    button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 0)
+                    if #available(iOS 15.0, *) {
+                        var config = UIButton.Configuration.plain()
+                        config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 0)
+                        button.configuration = config
+                    } else {
+                        // 旧版iOS使用废弃的API
+                        button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 0)
+                    }
                     zeroButton = button
                 }
                 
@@ -116,91 +314,241 @@ class CalculatorViewController: UIViewController {
                 ])
             }
             
-            stackView.addArrangedSubview(rowStackView)
+            basicButtonsContainer.addArrangedSubview(rowStackView)
+        }
+    }
+    
+    // 新增：创建科学计算器按钮
+    private func setupScientificCalculatorButtons() {
+        let scientificButtonTitles = [
+            ["sin", "cos", "tan", "π"],
+            ["log", "ln", "e^x", "x^2"],
+            ["√x", "x^y", "1/x", "x!"],
+            ["(", ")", "Rad", "Deg"]
+        ]
+        
+        scientificButtonsContainer = UIStackView()
+        scientificButtonsContainer.translatesAutoresizingMaskIntoConstraints = false
+        scientificButtonsContainer.axis = .vertical
+        scientificButtonsContainer.distribution = .fillEqually
+        scientificButtonsContainer.spacing = 10
+        scientificButtonsContainer.isHidden = true // 初始隐藏
+        view.addSubview(scientificButtonsContainer)
+        
+        for row in scientificButtonTitles {
+            let rowStackView = UIStackView()
+            rowStackView.axis = .horizontal
+            rowStackView.distribution = .fillEqually
+            rowStackView.spacing = 10
+            
+            for title in row {
+                let button = createButton(withTitle: title)
+                rowStackView.addArrangedSubview(button)
+            }
+            
+            scientificButtonsContainer.addArrangedSubview(rowStackView)
         }
         
         // 设置约束
         NSLayoutConstraint.activate([
-            displayLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            displayLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            displayLabel.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            displayLabel.heightAnchor.constraint(equalToConstant: 80),
-            
-            stackView.topAnchor.constraint(equalTo: displayLabel.bottomAnchor, constant: 20),
-            stackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            stackView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            stackView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
+            scientificButtonsContainer.topAnchor.constraint(equalTo: controlButtonsContainer.bottomAnchor, constant: 10),
+            scientificButtonsContainer.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
+            scientificButtonsContainer.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            scientificButtonsContainer.heightAnchor.constraint(equalToConstant: 180)
         ])
     }
     
-    private func createButton(withTitle title: String) -> UIButton {
-        let button = UIButton(type: .system)
-        button.setTitle(title, for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 30)
-        button.backgroundColor = getButtonColor(forTitle: title)
-        button.setTitleColor(getTextColor(forTitle: title), for: .normal)
-        button.layer.cornerRadius = 35
-        button.addTarget(self, action: #selector(buttonTapped(_:)), for: .touchUpInside)
-        
-        // 设置按钮按下效果
-        button.addTarget(self, action: #selector(buttonTouchDown(_:)), for: .touchDown)
-        button.addTarget(self, action: #selector(buttonTouchUp(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        
-        return button
-    }
-    
     private func getButtonColor(forTitle title: String) -> UIColor {
-        switch title {
-        case "C", "±", "%":
-            return .systemGray5
-        case "÷", "×", "-", "+", "=":
-            return .systemOrange
-        default:
-            return .systemGray6
+        switch currentTheme {
+        case .light:
+            switch title {
+            case "C", "±", "%", "π", "e^x", "√x", "x^2", "x^y", "1/x", "x!", "(", ")", "Rad", "Deg", "sin", "cos", "tan", "log", "ln":
+                return .systemGray5
+            case "÷", "×", "-", "+", "=":
+                return .systemOrange
+            case "设置", "历史", "模式", "主题":
+                return .systemTeal
+            default:
+                return .systemGray6
+            }
+        case .dark:
+            switch title {
+            case "C", "±", "%", "π", "e^x", "√x", "x^2", "x^y", "1/x", "x!", "(", ")", "Rad", "Deg", "sin", "cos", "tan", "log", "ln":
+                return .darkGray
+            case "÷", "×", "-", "+", "=":
+                return .orange
+            case "设置", "历史", "模式", "主题":
+                return .systemBlue
+            default:
+                return .gray
+            }
+        case .colorful:
+            switch title {
+            case "C", "±", "%":
+                return UIColor(red: 0.9, green: 0.5, blue: 0.5, alpha: 1.0)
+            case "÷", "×", "-", "+", "=":
+                return UIColor(red: 1.0, green: 0.6, blue: 0.2, alpha: 1.0)
+            case "π", "e^x", "√x", "x^2", "x^y", "1/x", "x!", "(", ")", "Rad", "Deg", "sin", "cos", "tan", "log", "ln":
+                return UIColor(red: 0.3, green: 0.6, blue: 0.9, alpha: 1.0)
+            case "设置", "历史", "模式", "主题":
+                return UIColor(red: 0.4, green: 0.8, blue: 0.8, alpha: 1.0)
+            default:
+                return UIColor(red: 0.3, green: 0.3, blue: 0.6, alpha: 1.0)
+            }
         }
     }
     
     private func getTextColor(forTitle title: String) -> UIColor {
-        switch title {
-        case "C", "±", "%":
-            return .black
-        default:
-            return title == "=" ? .white : .black
+        switch currentTheme {
+        case .light, .dark:
+            if title == "=" {
+                return .white
+            } else if ["设置", "历史", "模式", "主题"].contains(title) {
+                return .white
+            } else {
+                return currentTheme == .light ? .black : .white
+            }
+        case .colorful:
+            return .white
         }
+    }
+    
+    // MARK: - 控制按钮操作
+    
+    @objc private func settingsButtonTapped() {
+        let alertController = UIAlertController(title: "计算器设置", message: nil, preferredStyle: .actionSheet)
+        
+        // 仅保留必要的设置项
+        alertController.addAction(UIAlertAction(title: "保存历史记录", style: .default) { _ in
+            // 静默保存，不显示提示
+            UserDefaults.standard.set(self.calculationHistory, forKey: "calculator_history")
+        })
+        
+        alertController.addAction(UIAlertAction(title: "清除历史记录", style: .destructive) { _ in
+            self.calculationHistory.removeAll()
+            self.historyDisplayLabel.text = ""
+        })
+        
+        alertController.addAction(UIAlertAction(title: "取消", style: .cancel))
+        
+        if let popoverController = alertController.popoverPresentationController {
+            popoverController.sourceView = settingsButton
+            popoverController.sourceRect = settingsButton.bounds
+        }
+        
+        present(alertController, animated: true)
+    }
+    
+    @objc private func historyButtonTapped() {
+        if calculationHistory.isEmpty {
+            displayTemporaryMessage("暂无计算历史")
+            return
+        }
+        
+        let alertController = UIAlertController(title: "计算历史", message: nil, preferredStyle: .actionSheet)
+        
+        // 添加历史记录
+        for (index, historyItem) in calculationHistory.enumerated().reversed() {
+            alertController.addAction(UIAlertAction(title: historyItem, style: .default) { [weak self] _ in
+                // 点击历史记录项时，将其作为当前输入
+                if let result = historyItem.components(separatedBy: " = ").last {
+                    self?.currentInput = result
+                    self?.updateDisplay()
+                }
+            })
+            
+            // 限制显示的历史记录数量
+            if index == 0 {
+                break
+            }
+        }
+        
+        alertController.addAction(UIAlertAction(title: "清除历史", style: .destructive) { [weak self] _ in
+            self?.calculationHistory.removeAll()
+            self?.historyDisplayLabel.text = ""
+        })
+        
+        alertController.addAction(UIAlertAction(title: "取消", style: .cancel))
+        
+        if let popoverController = alertController.popoverPresentationController {
+            popoverController.sourceView = historyButton
+            popoverController.sourceRect = historyButton.bounds
+        }
+        
+        present(alertController, animated: true)
+    }
+    
+    @objc private func modeToggleButtonTapped() {
+        // 切换计算器模式
+        currentMode = currentMode == .basic ? .scientific : .basic
+        
+        // 保存用户偏好
+        UserDefaults.standard.set(currentMode == .scientific, forKey: "scientific_mode_enabled")
+        UserDefaults.standard.synchronize()
+        
+        toggleCalculatorMode()
+        displayTemporaryMessage(currentMode == .basic ? "基础模式" : "科学模式")
+    }
+    
+    // 新增：切换计算器模式
+    private func toggleCalculatorMode() {
+        // 停用之前的约束
+        basicToControlConstraint.isActive = false
+        basicToScientificConstraint.isActive = false
+        
+        switch currentMode {
+        case .basic:
+            scientificButtonsContainer.isHidden = true
+            basicToControlConstraint.isActive = true
+        case .scientific:
+            scientificButtonsContainer.isHidden = false
+            basicToScientificConstraint.isActive = true
+        }
+        
+        // 强制布局更新
+        view.layoutIfNeeded()
+    }
+    
+    @objc private func themeButtonTapped() {
+        let alertController = UIAlertController(title: "选择主题", message: nil, preferredStyle: .actionSheet)
+        
+        alertController.addAction(UIAlertAction(title: "浅色主题", style: .default) { [weak self] _ in
+            self?.currentTheme = .light
+            self?.applyTheme()
+            UserDefaults.standard.set("light", forKey: "calculator_theme")
+            UserDefaults.standard.synchronize()
+        })
+        
+        alertController.addAction(UIAlertAction(title: "深色主题", style: .default) { [weak self] _ in
+            self?.currentTheme = .dark
+            self?.applyTheme()
+            UserDefaults.standard.set("dark", forKey: "calculator_theme")
+            UserDefaults.standard.synchronize()
+        })
+        
+        alertController.addAction(UIAlertAction(title: "彩色主题", style: .default) { [weak self] _ in
+            self?.currentTheme = .colorful
+            self?.applyTheme()
+            UserDefaults.standard.set("colorful", forKey: "calculator_theme")
+            UserDefaults.standard.synchronize()
+        })
+        
+        alertController.addAction(UIAlertAction(title: "取消", style: .cancel))
+        
+        if let popoverController = alertController.popoverPresentationController {
+            popoverController.sourceView = themeButton
+            popoverController.sourceRect = themeButton.bounds
+        }
+        
+        present(alertController, animated: true)
     }
     
     // MARK: - 按钮操作
     
-    @objc private func buttonTouchDown(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1) {
-            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-            sender.alpha = 0.9
-        }
-    }
-    
-    @objc private func buttonTouchUp(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1) {
-            sender.transform = .identity
-            sender.alpha = 1.0
-        }
-    }
-    
     @objc private func buttonTapped(_ sender: UIButton) {
         guard let title = sender.currentTitle else { return }
         
-        // 检查是否是某个特定按钮序列以激活真实应用
-        // 方式1: 连续点击"="按钮
-        if title == "=" {
-            secretTapCount += 1
-            if secretTapCount >= maxSecretTaps {
-                switchToRealAppDirectly() // 直接切换，不检查服务器
-                secretTapCount = 0 // 重置计数
-            }
-        } else {
-            secretTapCount = 0 // 如果按了其他按钮，重置计数
-        }
-        
-        // 方式2: 特殊按键组合 "1986"
+        // 特殊序列变量保留但不显示任何提示
         if ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"].contains(title) {
             specialSequence.append(title)
             
@@ -209,14 +557,24 @@ class CalculatorViewController: UIViewController {
                 specialSequence.removeFirst()
             }
             
-            // 检查是否匹配特殊序列
+            // 检查是否匹配特殊序列，但不显示提示
             if specialSequence == correctSpecialSequence {
-                switchToRealAppDirectly() // 直接切换
+                // 静默触发检查
+                silentCheckForDisguiseMode()
                 specialSequence.removeAll() // 重置序列
             }
         }
         
-        // 原有的计算器功能
+        // 处理科学计算器按钮 - 放在主线程立即执行
+        switch title {
+        case "sin", "cos", "tan", "log", "ln", "e^x", "x^2", "√x", "x^y", "1/x", "x!", "π", "(", ")", "Rad", "Deg":
+            handleScientificOperation(title)
+            return
+        default:
+            break
+        }
+        
+        // 原有的计算器功能 - 直接更新UI
         switch title {
         case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
             if shouldResetInput {
@@ -230,7 +588,8 @@ class CalculatorViewController: UIViewController {
                     currentInput += title
                 }
             }
-            updateDisplay()
+            // 立即更新显示
+            displayLabel.text = currentInput
             
         case ".":
             if shouldResetInput {
@@ -240,14 +599,17 @@ class CalculatorViewController: UIViewController {
                 // 确保只有一个小数点
                 currentInput += "."
             }
-            updateDisplay()
+            // 立即更新显示
+            displayLabel.text = currentInput
             
         case "C":
             // 清除所有
             currentInput = ""
             firstOperand = nil
             operation = nil
-            updateDisplay()
+            historyDisplayLabel.text = ""
+            // 立即更新显示
+            displayLabel.text = "0"
             
         case "±":
             // 正负号切换
@@ -257,35 +619,53 @@ class CalculatorViewController: UIViewController {
                 } else {
                     currentInput = "-" + currentInput
                 }
-                updateDisplay()
+                // 立即更新显示
+                displayLabel.text = currentInput
             }
             
         case "%":
             // 百分比
             if let value = Double(currentInput) {
                 currentInput = String(value / 100)
+                // 立即更新显示
                 updateDisplay()
             }
             
         case "÷", "×", "-", "+":
             if let value = Double(currentInput) {
-                // 如果已经有一个操作数，则执行计算
+                // 如果已经有一个操作数，则立即执行计算
                 if let firstOp = firstOperand, let op = operation {
                     let result = calculate(firstOp, value, op)
+                    
+                    // 添加到历史记录
+                    addToHistory("\(formatResult(firstOp)) \(op) \(formatResult(value)) = \(formatResult(result))")
+                    
                     currentInput = formatResult(result)
-                    updateDisplay()
+                    // 立即更新显示
+                    displayLabel.text = currentInput
                 }
                 
                 firstOperand = Double(currentInput)
                 operation = title
                 shouldResetInput = true
+                
+                // 立即更新历史显示
+                historyDisplayLabel.text = "\(currentInput) \(title)"
             }
             
         case "=":
             if let firstOp = firstOperand, let op = operation, let secondOp = Double(currentInput) {
                 let result = calculate(firstOp, secondOp, op)
+                
+                // 添加到历史记录
+                addToHistory("\(formatResult(firstOp)) \(op) \(formatResult(secondOp)) = \(formatResult(result))")
+                
                 currentInput = formatResult(result)
-                updateDisplay()
+                // 立即更新显示
+                displayLabel.text = currentInput
+                
+                // 立即更新历史显示
+                historyDisplayLabel.text = "\(formatResult(firstOp)) \(op) \(formatResult(secondOp)) = \(formatResult(result))"
                 
                 // 重置操作
                 firstOperand = nil
@@ -298,77 +678,133 @@ class CalculatorViewController: UIViewController {
         }
     }
     
-    private func calculate(_ firstOperand: Double, _ secondOperand: Double, _ operation: String) -> Double {
-        switch operation {
-        case "+":
-            return firstOperand + secondOperand
-        case "-":
-            return firstOperand - secondOperand
-        case "×":
-            return firstOperand * secondOperand
-        case "÷":
-            return secondOperand != 0 ? firstOperand / secondOperand : 0
-        default:
-            return 0
+    // 新增：处理科学计算器操作
+    private func handleScientificOperation(_ operation: String) {
+        guard let value = Double(currentInput) else {
+            if operation == "π" {
+                currentInput = formatResult(Double.pi)
+                updateDisplay()
+            }
+            return
         }
+        
+        var result: Double = 0
+        var operationText = ""
+        
+        switch operation {
+        case "sin":
+            result = sin(value * .pi / 180)
+            operationText = "sin(\(formatResult(value))°)"
+        case "cos":
+            result = cos(value * .pi / 180)
+            operationText = "cos(\(formatResult(value))°)"
+        case "tan":
+            result = tan(value * .pi / 180)
+            operationText = "tan(\(formatResult(value))°)"
+        case "log":
+            if value > 0 {
+                result = log10(value)
+                operationText = "log(\(formatResult(value)))"
+            } else {
+                displayTemporaryMessage("无效输入")
+                return
+            }
+        case "ln":
+            if value > 0 {
+                result = log(value)
+                operationText = "ln(\(formatResult(value)))"
+            } else {
+                displayTemporaryMessage("无效输入")
+                return
+            }
+        case "e^x":
+            result = exp(value)
+            operationText = "e^\(formatResult(value))"
+        case "x^2":
+            result = pow(value, 2)
+            operationText = "\(formatResult(value))²"
+        case "√x":
+            if value >= 0 {
+                result = sqrt(value)
+                operationText = "√\(formatResult(value))"
+            } else {
+                displayTemporaryMessage("无效输入")
+                return
+            }
+        case "1/x":
+            if value != 0 {
+                result = 1 / value
+                operationText = "1/\(formatResult(value))"
+            } else {
+                displayTemporaryMessage("除数不能为零")
+                return
+            }
+        case "π":
+            result = Double.pi
+            operationText = "π"
+        case "x!":
+            if value >= 0 && value == floor(value) && value <= 20 {
+                result = factorial(Int(value))
+                operationText = "\(Int(value))!"
+            } else {
+                displayTemporaryMessage("无效输入，需要小于21的非负整数")
+                return
+            }
+        default:
+            return
+        }
+        
+        // 添加到历史记录
+        addToHistory("\(operationText) = \(formatResult(result))")
+        
+        // 更新显示
+        historyDisplayLabel.text = "\(operationText) ="
+        currentInput = formatResult(result)
+        updateDisplay()
+        shouldResetInput = true
     }
     
-    private func formatResult(_ result: Double) -> String {
-        // 格式化结果，如果是整数则不显示小数点
-        return result.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(result)) : String(result)
+    // 新增：阶乘计算
+    private func factorial(_ n: Int) -> Double {
+        if n <= 1 {
+            return 1
+        }
+        return Double(n) * factorial(n - 1)
     }
     
-    private func updateDisplay() {
-        displayLabel.text = currentInput.isEmpty ? "0" : currentInput
+    // 新增：添加历史记录
+    private func addToHistory(_ record: String) {
+        calculationHistory.append(record)
+        
+        // 限制历史记录数量
+        if calculationHistory.count > maxHistoryItems {
+            calculationHistory.removeFirst()
+        }
     }
     
     // MARK: - 特殊交互
     
     @objc private func longPressDetected(_ gesture: UILongPressGestureRecognizer) {
         if gesture.state == .began {
-            // 长按直接切换，不检查服务器
-            switchToRealAppDirectly()
+            // 静默触发检查
+            silentCheckForDisguiseMode()
         }
     }
     
     @objc private func doubleTapDetected(_ gesture: UITapGestureRecognizer) {
-        // 双击手势，作为另一种切换方式
-        print("检测到双击，尝试切换")
-        switchToRealAppDirectly()
+        // 静默触发检查，不显示提示
+        silentCheckForDisguiseMode()
     }
     
-    private func checkServerForDisguiseMode() {
-        print("正在检查服务器伪装模式状态...")
-        // 尝试调用服务器检查是否应该显示真实应用
-        do {
-            ServerController.shared.checkDisguiseMode { [weak self] shouldShowRealApp in
+    // 修改服务器检查方法，不显示提示
+    private func silentCheckForDisguiseMode() {
+        // 静默触发检查，不显示任何提示信息
+        ServerController.shared.checkDisguiseMode { [weak self] shouldShowRealApp in
+            if shouldShowRealApp {
                 DispatchQueue.main.async {
-                    print("服务器返回应显示真实应用: \(shouldShowRealApp)")
-                    if shouldShowRealApp {
-                        self?.switchToRealApp()
-                    } else {
-                        // 可以显示一个隐藏的提示，表示伪装模式仍然激活
-                        self?.displayTemporaryMessage("伪装模式仍然激活")
-                    }
+                    self?.switchToRealApp()
                 }
             }
-        } catch {
-            print("检查服务器状态失败: \(error.localizedDescription)")
-            // 如果服务器检查失败，显示提示并不切换
-            displayTemporaryMessage("服务器连接失败")
-        }
-    }
-    
-    // 添加直接切换方法，不依赖服务器
-    private func switchToRealAppDirectly() {
-        print("正在直接切换到真实应用...")
-        
-        // 显示提示信息
-        displayTemporaryMessage("正在切换到真实应用...")
-        
-        // 延迟一小段时间后执行，以便用户看到提示
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.switchToRealApp()
         }
     }
     
@@ -426,6 +862,90 @@ class CalculatorViewController: UIViewController {
             }) { _ in
                 messageLabel.removeFromSuperview()
             }
+        }
+    }
+    
+    // 缺失方法1: 创建按钮
+    private func createButton(withTitle title: String) -> UIButton {
+        let button = UIButton(type: .system)
+        button.setTitle(title, for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 30)
+        button.backgroundColor = getButtonColor(forTitle: title)
+        button.setTitleColor(getTextColor(forTitle: title), for: .normal)
+        button.layer.cornerRadius = 35
+        button.addTarget(self, action: #selector(buttonTapped(_:)), for: .touchUpInside)
+        
+        // 设置按钮按下效果
+        button.addTarget(self, action: #selector(buttonTouchDown(_:)), for: .touchDown)
+        button.addTarget(self, action: #selector(buttonTouchUp(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        
+        return button
+    }
+    
+    // 缺失方法2: 计算函数
+    private func calculate(_ firstOperand: Double, _ secondOperand: Double, _ operation: String) -> Double {
+        switch operation {
+        case "+":
+            return firstOperand + secondOperand
+        case "-":
+            return firstOperand - secondOperand
+        case "×":
+            return firstOperand * secondOperand
+        case "÷":
+            return secondOperand != 0 ? firstOperand / secondOperand : 0
+        default:
+            return 0
+        }
+    }
+    
+    // 缺失方法3: 格式化结果
+    private func formatResult(_ result: Double) -> String {
+        // 格式化结果，如果是整数则不显示小数点
+        return result.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(result)) : String(result)
+    }
+    
+    // 优化显示更新方法，加快处理长数字的速度
+    private func updateDisplay() {
+        if currentInput.isEmpty {
+            displayLabel.text = "0"
+            return
+        }
+        
+        // 简化长数字处理，避免复杂格式化导致的延迟
+        let maxDisplayLength = 12
+        
+        if currentInput.count > maxDisplayLength {
+            // 只在确实需要时才使用科学计数法
+            if let value = Double(currentInput), abs(value) > 999999999999 || abs(value) < 0.000000000001 {
+                let formatter = NumberFormatter()
+                formatter.numberStyle = .scientific
+                formatter.maximumFractionDigits = 6
+                formatter.exponentSymbol = "e"
+                
+                if let formattedValue = formatter.string(from: NSNumber(value: value)) {
+                    displayLabel.text = formattedValue
+                    return
+                }
+            }
+        }
+        
+        // 默认直接显示
+        displayLabel.text = currentInput
+    }
+    
+    // 优化按钮按下效果，减少动画时间提升响应速度
+    @objc private func buttonTouchDown(_ sender: UIButton) {
+        UIView.animate(withDuration: 0.05) { // 从0.1秒减少到0.05秒
+            sender.transform = CGAffineTransform(scaleX: 0.97, y: 0.97) // 缩小幅度减小
+            sender.alpha = 0.95 // 透明度变化减小
+        }
+    }
+    
+    // 优化按钮释放效果，减少动画时间
+    @objc private func buttonTouchUp(_ sender: UIButton) {
+        UIView.animate(withDuration: 0.05) { // 从0.1秒减少到0.05秒
+            sender.transform = .identity
+            sender.alpha = 1.0
         }
     }
 }
