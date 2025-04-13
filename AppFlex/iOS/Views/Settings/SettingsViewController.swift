@@ -1,14 +1,15 @@
 import UIKit
+import SafariServices
 
 class SettingsViewController: UIViewController {
     
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
-    private let sections = ["应用信息", "设备设置", "关于"]
-    private let settings = [
-        ["版本", "清除缓存"],
-        ["设备UDID", "主题", "字体大小"],
-        ["关于我们", "联系开发者", "意见反馈"]
+    private let sections = ["社交媒体"] // 只保留社交媒体部分
+    private var settings = [
+        [] // 社交媒体链接将通过API动态填充
     ]
+    private let jsonURL = "https://uni.cloudmantoub.online/mantou.json"
+    private var socialLinks: [String: String] = [:]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -16,11 +17,11 @@ class SettingsViewController: UIViewController {
         setupUI()
         tableView.dataSource = self
         tableView.delegate = self
+        fetchSocialLinks()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // 刷新表格以更新UDID状态
         tableView.reloadData()
     }
     
@@ -41,10 +42,62 @@ class SettingsViewController: UIViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "SettingsCell")
     }
     
-    // 显示UDID设置界面
-    private func showUDIDSettings() {
-        let udidVC = UDIDSettingsViewController()
-        navigationController?.pushViewController(udidVC, animated: true)
+    // 获取社交媒体链接
+    private func fetchSocialLinks() {
+        guard let url = URL(string: jsonURL) else { return }
+        
+        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            guard let self = self,
+                  let data = data,
+                  error == nil else {
+                print("获取社交媒体链接失败: \(error?.localizedDescription ?? "未知错误")")
+                return
+            }
+            
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let socialLinks = json["social_links"] as? [String: String] {
+                    
+                    self.socialLinks = socialLinks
+                    
+                    // 更新社交媒体部分
+                    DispatchQueue.main.async {
+                        self.settings[0] = Array(self.socialLinks.keys) // 更新为索引0
+                        self.tableView.reloadData()
+                    }
+                }
+            } catch {
+                print("解析社交媒体链接失败: \(error.localizedDescription)")
+            }
+        }.resume()
+    }
+    
+    // 打开社交媒体链接
+    private func openSocialLink(_ url: String) {
+        guard let url = URL(string: url) else {
+            showAlert(title: "错误", message: "无效的URL")
+            return
+        }
+        
+        // 检查URL类型
+        if url.absoluteString.contains("http") {
+            // 网页链接使用SFSafariViewController打开
+            let safariVC = SFSafariViewController(url: url)
+            present(safariVC, animated: true)
+        } else {
+            // 其他类型的URL使用UIApplication打开
+            if UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            } else {
+                showAlert(title: "错误", message: "无法打开此链接")
+            }
+        }
+    }
+    
+    private func showAlert(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "确定", style: .default))
+        present(alert, animated: true)
     }
 }
 
@@ -58,32 +111,26 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "SettingsCell", for: indexPath)
+        // 社交媒体部分使用自定义样式
+        let cell = UITableViewCell(style: .default, reuseIdentifier: "SocialCell")
+        let linkName = settings[indexPath.section][indexPath.row] as! String
+        cell.textLabel?.text = linkName
         
-        // 重置单元格样式
-        cell.detailTextLabel?.text = nil
-        cell.accessoryType = .disclosureIndicator
-        
-        cell.textLabel?.text = settings[indexPath.section][indexPath.row]
-        
-        // 为UDID设置添加详细信息
-        if indexPath.section == 1 && indexPath.row == 0 {
-            // 使用子标题样式单元格显示UDID状态
-            let styledCell = UITableViewCell(style: .value1, reuseIdentifier: "SettingsDetailCell")
-            styledCell.textLabel?.text = settings[indexPath.section][indexPath.row]
-            
-            if ServerController.shared.hasCustomUDID() {
-                styledCell.detailTextLabel?.text = "已设置"
-                styledCell.detailTextLabel?.textColor = .systemGreen
+        // 根据链接类型设置不同的图标
+        if let url = socialLinks[linkName] {
+            if url.contains("qrr.jpg") {
+                cell.imageView?.image = UIImage(systemName: "qrcode")
+            } else if url.contains("t.me") {
+                cell.imageView?.image = UIImage(systemName: "paperplane.fill")
+            } else if url.contains("qq.com") {
+                cell.imageView?.image = UIImage(systemName: "message.fill")
             } else {
-                styledCell.detailTextLabel?.text = "系统默认"
-                styledCell.detailTextLabel?.textColor = .systemGray
+                cell.imageView?.image = UIImage(systemName: "link")
             }
-            
-            styledCell.accessoryType = .disclosureIndicator
-            return styledCell
         }
         
+        cell.accessoryType = .disclosureIndicator
+        cell.imageView?.tintColor = .systemBlue
         return cell
     }
     
@@ -94,13 +141,10 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
-        // 处理设置项点击
-        let selectedSetting = settings[indexPath.section][indexPath.row]
-        print("选择了设置: \(selectedSetting)")
-        
-        // 处理UDID设置
-        if indexPath.section == 1 && indexPath.row == 0 {
-            showUDIDSettings()
+        // 处理社交媒体链接
+        let linkName = settings[indexPath.section][indexPath.row] as! String
+        if let linkURL = socialLinks[linkName] {
+            openSocialLink(linkURL)
         }
     }
 } 

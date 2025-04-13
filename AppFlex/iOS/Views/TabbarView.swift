@@ -38,11 +38,13 @@ struct TabbarView: View {
 	enum Tab: String {
 		case store
 		case settings
+		case webcloud  // 添加网站导航选项
 	}
 
 	var body: some View {
 		TabView(selection: $selectedTab) {
 			tab(for: .store)
+			tab(for: .webcloud)  // 添加网站导航标签
 			tab(for: .settings)
 		}
 		.onChange(of: selectedTab) { newValue in
@@ -58,6 +60,11 @@ struct TabbarView: View {
 				.edgesIgnoringSafeArea(.all)
 				.tabItem { Label("应用商店", systemImage: "bag.fill") }
 				.tag(Tab.store)
+		case .webcloud:
+			NavigationViewController(WebcloudCollectionViewController.self, title: "网站导航")
+				.edgesIgnoringSafeArea(.all)
+				.tabItem { Label("网站导航", systemImage: "globe") }
+				.tag(Tab.webcloud)
 		case .settings:
 			NavigationViewController(SettingsViewController.self, title: String.localized("TAB_SETTINGS"))
 				.edgesIgnoringSafeArea(.all)
