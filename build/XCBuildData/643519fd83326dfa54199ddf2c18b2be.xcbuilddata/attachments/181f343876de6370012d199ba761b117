@@ -1,0 +1,198 @@
+{
+  "" : {
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppFlex-master.dia",
+    "emit-module-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppFlex-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppFlex-master-emit-module.dia",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppFlex-master.swiftdeps"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/AppDelegate.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDelegate.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDelegate.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDelegate.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDelegate.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDelegate.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDelegate.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDelegate.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDelegate~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/AppFlexApp.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppFlexApp.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppFlexApp.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppFlexApp.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppFlexApp.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppFlexApp.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppFlexApp.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppFlexApp.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppFlexApp~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/ContentView.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ContentView.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ContentView~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Extensions/UIColor+Hex.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UIColor+Hex.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UIColor+Hex.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UIColor+Hex.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UIColor+Hex.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UIColor+Hex.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UIColor+Hex.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UIColor+Hex.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UIColor+Hex~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Models/AppDownload.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDownload.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDownload.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDownload.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDownload.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDownload.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDownload.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDownload.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/AppDownload~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Models/CoreDataManager.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CoreDataManager.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CoreDataManager.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CoreDataManager.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CoreDataManager.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CoreDataManager.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CoreDataManager.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CoreDataManager.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CoreDataManager~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Models/CryptoUtils.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CryptoUtils.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CryptoUtils.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CryptoUtils.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CryptoUtils.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CryptoUtils.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CryptoUtils.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CryptoUtils.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/CryptoUtils~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Models/Debug.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/Debug.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/Debug.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/Debug.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/Debug.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/Debug.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/Debug.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/Debug.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/Debug~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Models/ServerController.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ServerController.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ServerController.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ServerController.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ServerController.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ServerController.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ServerController.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ServerController.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/ServerController~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Utilities/IPAHandler.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/IPAHandler.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/IPAHandler.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/IPAHandler.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/IPAHandler.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/IPAHandler.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/IPAHandler.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/IPAHandler.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/IPAHandler~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Views/Settings/SettingsViewController.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/SettingsViewController.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/SettingsViewController.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/SettingsViewController.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/SettingsViewController.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/SettingsViewController.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/SettingsViewController.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/SettingsViewController.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/SettingsViewController~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Views/Settings/UDIDSettingsViewController.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UDIDSettingsViewController.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UDIDSettingsViewController.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UDIDSettingsViewController.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UDIDSettingsViewController.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UDIDSettingsViewController.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UDIDSettingsViewController.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UDIDSettingsViewController.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/UDIDSettingsViewController~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Views/Store/cloudCollectionViewController.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/cloudCollectionViewController.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/cloudCollectionViewController.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/cloudCollectionViewController.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/cloudCollectionViewController.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/cloudCollectionViewController.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/cloudCollectionViewController.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/cloudCollectionViewController.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/cloudCollectionViewController~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Views/Store/listCollectionViewController.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/listCollectionViewController.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/listCollectionViewController.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/listCollectionViewController.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/listCollectionViewController.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/listCollectionViewController.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/listCollectionViewController.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/listCollectionViewController.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/listCollectionViewController~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Views/Store/StoreCollectionViewController.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/StoreCollectionViewController.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/StoreCollectionViewController.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/StoreCollectionViewController.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/StoreCollectionViewController.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/StoreCollectionViewController.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/StoreCollectionViewController.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/StoreCollectionViewController.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/StoreCollectionViewController~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Views/Store/webcloudCollectionViewController.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webcloudCollectionViewController.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webcloudCollectionViewController.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webcloudCollectionViewController.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webcloudCollectionViewController.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webcloudCollectionViewController.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webcloudCollectionViewController.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webcloudCollectionViewController.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webcloudCollectionViewController~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Views/Store/webDetailCollectionViewController.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webDetailCollectionViewController.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webDetailCollectionViewController.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webDetailCollectionViewController.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webDetailCollectionViewController.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webDetailCollectionViewController.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webDetailCollectionViewController.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webDetailCollectionViewController.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/webDetailCollectionViewController~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/AppFlex/iOS/Views/TabbarView.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/TabbarView.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/TabbarView.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/TabbarView.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/TabbarView.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/TabbarView.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/TabbarView.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/TabbarView.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/TabbarView~partial.swiftmodule"
+  },
+  "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/mantou/Documents/AppFlex/build/AppFlex.build/Debug-iphoneos/AppFlex.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

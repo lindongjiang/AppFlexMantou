@@ -33,8 +33,8 @@ func application(_ app: UIApplication, open url: URL, options: [UIApplication.Op
 import UIKit
 import SafariServices
 
-// 全局变量，现在使用KeyChain UUID替代UDID
-var globalDeviceUUID: String? = KeychainUUID.getUUID()
+// 全局变量，用于存储设备UDID
+var globalDeviceUUID: String?
 
 class StoreCollectionViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout, SFSafariViewControllerDelegate {
     
@@ -103,10 +103,10 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
 
     private var apps: [AppData] = []
     private var deviceUUID: String {
-        // 直接使用Keychain UUID，无需复杂的回退逻辑
-        return globalDeviceUUID ?? KeychainUUID.getUUID()
+        return globalDeviceUUID ?? UIDevice.current.identifierForVendor?.uuidString ?? "未知设备"
     }
-    
+    private var safariVC: SFSafariViewController?
+    private let udidProfileURL = "https://uni.cloudmantoub.online/udid.mobileconfig"
     private let baseURL = "https://renmai.cloudmantoub.online/api/client"
     
     private var udidLabel: UILabel!
@@ -136,18 +136,26 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         
         title = "应用商店"
         
-        // 移除获取UDID按钮
-        // 添加刷新按钮替代
-        let refreshButton = UIBarButtonItem(image: UIImage(systemName: "arrow.clockwise"), style: .plain, target: self, action: #selector(refreshButtonTapped))
-        navigationItem.rightBarButtonItems = [refreshButton]
+        // 添加获取UDID按钮
+        let getUDIDButton = UIBarButtonItem(title: "获取UDID", style: .plain, target: self, action: #selector(getUDIDButtonTapped))
         
-        // 添加设备ID显示区域
+        navigationItem.rightBarButtonItems = [getUDIDButton]
+        
+        // 添加UDID显示区域
         setupUDIDDisplay()
         
-        // 使用KeyChain获取UUID并显示
-        initializeDeviceID()
+        // 检查是否已经有UDID
+        checkForStoredUDID()
         
-        // 不在viewDidLoad中加载应用列表，推迟到viewDidAppear
+        fetchAppData()
+        
+        // 添加应用进入前台的通知监听，用于处理从Safari回来后的情况
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applicationDidBecomeActive),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
         
         // 添加卡密验证结果的通知监听
         NotificationCenter.default.addObserver(
@@ -158,26 +166,17 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         )
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        
-        // 在视图完全加载后获取应用列表
-        if apps.isEmpty {
-            fetchAppData()
-        }
-    }
-    
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
     
-    @objc private func refreshButtonTapped() {
-        // 刷新应用列表
-        fetchAppData()
+    @objc private func applicationDidBecomeActive() {
+        // 应用回到前台时，不再尝试从剪贴板检查UDID
+        // 原剪贴板检测相关代码已删除
     }
     
     private func setupUDIDDisplay() {
-        // 创建显示设备ID的容器视图
+        // 创建显示UDID的容器视图
         let udidContainerView = UIView()
         udidContainerView.backgroundColor = UIColor.systemGray6
         udidContainerView.layer.cornerRadius = 10
@@ -188,16 +187,16 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         let titleLabel = UILabel()
         titleLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
         titleLabel.textColor = UIColor.systemGray
-        titleLabel.text = "设备标识:"
+        titleLabel.text = "设备UDID:"
         
-        // 创建设备ID标签
+        // 创建UDID标签
         udidLabel = UILabel()
         udidLabel.font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
         udidLabel.textColor = UIColor.darkGray
         udidLabel.numberOfLines = 1
         udidLabel.adjustsFontSizeToFitWidth = true
         udidLabel.minimumScaleFactor = 0.7
-        udidLabel.text = "加载中..."
+        udidLabel.text = "获取中..."
         
         // 添加复制按钮
         let copyButton = UIButton(type: .system)
@@ -237,55 +236,135 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
             copyButton.heightAnchor.constraint(equalToConstant: 40)
         ])
         
-        // 调整集合视图的内容边距，为设备ID显示区域腾出空间
+        // 调整集合视图的内容边距，为UDID显示区域腾出空间
         collectionView.contentInset = UIEdgeInsets(top: 66, left: 0, bottom: 0, right: 0)
     }
     
     @objc private func copyUDIDButtonTapped() {
-        // 复制设备ID到剪贴板
-        let uuid = deviceUUID
-        UIPasteboard.general.string = uuid
-        
-        // 显示复制成功提示
+        if let udid = globalDeviceUUID {
+            UIPasteboard.general.string = udid
+            
+            // 显示复制成功提示
+            let alert = UIAlertController(
+                title: "已复制",
+                message: "UDID已复制到剪贴板",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "确定", style: .default, handler: nil))
+            present(alert, animated: true, completion: nil)
+        }
+    }
+    
+    // 检查是否已经存储了UDID
+    private func checkForStoredUDID() {
+        if let storedUDID = UserDefaults.standard.string(forKey: "deviceUDID") {
+            globalDeviceUUID = storedUDID
+            Debug.shared.log(message: "已加载存储的UDID: \(storedUDID)")
+            
+            // 更新UDID显示
+            updateUDIDDisplay(storedUDID)
+            
+            // 在控制台也打印UDID，便于调试
+            print("当前设备UDID: \(storedUDID)")
+        } else {
+            Debug.shared.log(message: "未找到存储的UDID，需要获取")
+            print("未找到存储的UDID，需要获取")
+            
+            // 提示用户获取UDID的重要性
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                let alert = UIAlertController(
+                    title: "需要获取UDID",
+                    message: "为了正常使用应用安装功能，请点击获取UDID",
+                    preferredStyle: .alert
+                )
+                
+                let getUDIDAction = UIAlertAction(title: "立即获取", style: .default) { [weak self] _ in
+                    self?.showUDIDProfileAlert()
+                }
+                
+                let laterAction = UIAlertAction(title: "稍后再说", style: .cancel, handler: nil)
+                
+                alert.addAction(getUDIDAction)
+                alert.addAction(laterAction)
+                
+                self?.present(alert, animated: true, completion: nil)
+            }
+        }
+    }
+    
+    private func updateUDIDDisplay(_ udid: String) {
+        DispatchQueue.main.async { [weak self] in
+            self?.udidLabel.text = udid
+        }
+    }
+    
+    private func showUDIDProfileAlert() {
         let alert = UIAlertController(
-            title: "已复制",
-            message: "设备标识已复制到剪贴板",
+            title: "获取设备UDID",
+            message: "系统将安装描述文件来获取UDID。安装完成后，请注意URL Scheme回调将自动导入UDID。",
+            preferredStyle: .alert
+        )
+        
+        let proceedAction = UIAlertAction(title: "继续", style: .default) { [weak self] _ in
+            self?.openUDIDProfile()
+        }
+        
+        let cancelAction = UIAlertAction(title: "取消", style: .cancel, handler: nil)
+        
+        alert.addAction(proceedAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true, completion: nil)
+    }
+    
+    private func openUDIDProfile() {
+        guard let url = URL(string: udidProfileURL) else { return }
+        
+        // 添加一个通知，以便能够接收URL Scheme回调
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleUDIDCallback(_:)),
+            name: NSNotification.Name("UDIDCallbackReceived"),
+            object: nil
+        )
+        
+        safariVC = SFSafariViewController(url: url)
+        safariVC?.delegate = self
+        present(safariVC!, animated: true, completion: nil)
+    }
+    
+    @objc private func handleUDIDCallback(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let udid = userInfo["udid"] as? String else {
+            return
+        }
+        
+        // 存储UDID
+        globalDeviceUUID = udid
+        UserDefaults.standard.set(udid, forKey: "deviceUDID")
+        Debug.shared.log(message: "成功通过URL Scheme获取并存储UDID: \(udid)")
+        
+        // 更新UDID显示
+        updateUDIDDisplay(udid)
+        
+        // 通知用户
+        let alert = UIAlertController(
+            title: "成功",
+            message: "已成功获取设备UDID",
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: "确定", style: .default, handler: nil))
         present(alert, animated: true, completion: nil)
     }
     
-    // 初始化设备ID (替代旧的checkForStoredUDID方法)
-    private func initializeDeviceID() {
-        // 从KeyChain获取或创建UUID
-        let uuid = KeychainUUID.getUUID()
-        globalDeviceUUID = uuid
+    // SFSafariViewControllerDelegate
+    func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
+        // 当Safari关闭时，检查是否有回调
+        Debug.shared.log(message: "Safari已关闭，检查UDID状态")
         
-        // 更新UI显示
-        updateUDIDDisplay(uuid)
-        
-        // 调试信息
-        print("设备标识(KeyChain UUID): \(uuid)")
-        Debug.shared.log(message: "设备标识: \(uuid)")
-        
-        // 同时保存到UserDefaults以兼容旧代码
-        UserDefaults.standard.set(uuid, forKey: "deviceUDID")
-        
-        // 同时也保存到ServerController使用的自定义键
-        UserDefaults.standard.set(uuid, forKey: "custom_device_udid")
-        UserDefaults.standard.synchronize()
-        
-        // 确保ServerController使用的是相同的UDID
-        ServerController.shared.saveCustomUDID(uuid)
+        // 不再从剪贴板读取UDID
     }
-    
-    private func updateUDIDDisplay(_ uuid: String) {
-        DispatchQueue.main.async { [weak self] in
-            self?.udidLabel.text = uuid
-        }
-    }
-    
+
     private func fetchAppData() {
         // 显示加载提示
         let loadingAlert = UIAlertController(title: "加载中", message: "正在获取应用列表...", preferredStyle: .alert)
@@ -349,294 +428,197 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         }
     }
 
-    private func checkDeviceAuthStatus(for app: AppData) {
-        // 获取设备标识
-        let uuid = deviceUUID
-        guard !uuid.isEmpty else {
-            print("设备标识无效")
-            // 失败时自动尝试重新生成
-            initializeDeviceID()
+    private func checkUDIDStatus(for app: AppData) {
+        guard let cleanUUID = globalDeviceUUID?
+            .replacingOccurrences(of: "Optional(\"", with: "")
+            .replacingOccurrences(of: "\")", with: ""),
+            !cleanUUID.isEmpty else {
+            print("设备 UUID 无效")
             return
         }
 
-        guard let encodedUUID = uuid.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-            print("设备标识编码失败")
+        guard let encodedUUID = cleanUUID.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            print("UDID编码失败")
             return
         }
 
-        // 构建API请求URL - 按照文档规范使用/api/client/check-udid格式
         let urlString = "\(baseURL)/check-udid?udid=\(encodedUUID)"
         guard let url = URL(string: urlString) else {
             print("URL构建失败")
             return
         }
         
-        print("检查设备授权状态: \(urlString)")
-        Debug.shared.log(message: "检查设备授权状态，设备标识: \(uuid)")
-        
-        // 显示加载中提示
-        let loadingAlert = UIAlertController(title: "检查中", message: "正在检查设备授权状态...", preferredStyle: .alert)
-        present(loadingAlert, animated: true)
+        print("检查UDID状态: \(urlString)")
         
         URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-            guard let self = self else { return }
+            guard let data = data, error == nil else {
+                print("检查UDID状态失败：\(error?.localizedDescription ?? "未知错误")")
+                return
+            }
             
-            DispatchQueue.main.async {
-                loadingAlert.dismiss(animated: true) {
-                    if let error = error {
-                        print("检查设备授权状态失败：\(error.localizedDescription)")
-                        self.handleDeviceCheckError(for: app, error: error)
-                        return
-                    }
-                    
-                    guard let data = data else {
-                        print("检查设备授权状态失败：未返回数据")
-                        self.promptUnlockCode(for: app)
-                        return
-                    }
-                    
-                    do {
-                        let response = try JSONDecoder().decode(APIResponse<UDIDStatus>.self, from: data)
-                        
-                        if response.success {
-                            if response.data.bound {
-                                print("设备标识已绑定，获取应用详情")
-                                Debug.shared.log(message: "设备已授权，绑定数: \(response.data.bindings?.count ?? 0)")
-                                
-                                // 设备已绑定，直接获取应用详情并安装
-                                // 保存本地解锁状态
-                                UserDefaults.standard.set(true, forKey: "app_unlocked_\(app.id)")
-                                UserDefaults.standard.synchronize()
-                                
-                                print("设备已授权，直接获取应用详情")
-                                self.fetchAppDetails(for: app)
+            do {
+                let response = try JSONDecoder().decode(APIResponse<UDIDStatus>.self, from: data)
+                DispatchQueue.main.async {
+                    if response.success {
+                        if response.data.bound {
+                            print("UDID已绑定，获取应用详情")
+                            
+                            // 查看是否有与当前应用相关的绑定信息
+                            var hasAppBinding = false
+                            if let bindings = response.data.bindings {
+                                // 这里可以添加逻辑检查绑定是否与当前应用相关
+                                // 但API文档中没有提供这个关联信息，所以我们假设绑定是全局的
+                                hasAppBinding = !bindings.isEmpty
+                            }
+                            
+                            // 如果有绑定信息，则直接获取应用详情
+                            if hasAppBinding {
+                                self?.fetchAppDetails(for: app)
                             } else {
-                                print("设备标识未绑定，需要验证卡密")
-                                Debug.shared.log(message: "设备未授权，需要卡密验证")
-                                self.promptUnlockCode(for: app)
+                                // 虽然UDID有绑定，但可能不是针对当前应用
+                                print("UDID已绑定但不是针对当前应用，准备显示卡密输入框")
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                                    guard let self = self else { return }
+                                    self.promptUnlockCode(for: app)
+                                }
                             }
                         } else {
-                            print("检查设备授权状态失败：\(response.message ?? "未知错误")")
-                            Debug.shared.log(message: "授权检查失败: \(response.message ?? "未知错误")")
+                            print("UDID未绑定，需要验证卡密")
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                                guard let self = self else { return }
+                                self.promptUnlockCode(for: app)
+                            }
+                        }
+                    } else {
+                        print("检查UDID状态失败：\(response.message ?? "未知错误")")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                            guard let self = self else { return }
                             self.promptUnlockCode(for: app)
                         }
-                    } catch {
-                        print("解析设备授权状态响应失败：\(error.localizedDescription)")
-                        Debug.shared.log(message: "授权数据解析错误: \(error.localizedDescription)")
-                        print("解析错误，准备显示卡密输入框")
+                    }
+                }
+            } catch {
+                print("解析UDID状态响应失败：\(error.localizedDescription)")
+                // 解析错误时，默认提示输入卡密
+                DispatchQueue.main.async {
+                    print("解析错误，准备显示卡密输入框")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                        guard let self = self else { return }
                         self.promptUnlockCode(for: app)
                     }
                 }
             }
         }.resume()
     }
-    
-    // 添加设备授权检查错误处理方法
-    private func handleDeviceCheckError(for app: AppData, error: Error?) {
-        DispatchQueue.main.async { [weak self] in
-            let errorMessage = error?.localizedDescription ?? "网络连接错误"
-            Debug.shared.log(message: "设备授权检查失败: \(errorMessage)")
-            
-            // 显示错误提示并提供重试选项
-            let alert = UIAlertController(
-                title: "授权检查失败",
-                message: "无法验证设备授权状态，请检查网络连接后重试。\n\n错误: \(errorMessage)",
-                preferredStyle: .alert
-            )
-            
-            // 重试选项
-            alert.addAction(UIAlertAction(title: "重试", style: .default) { [weak self] _ in
-                self?.checkDeviceAuthStatus(for: app)
-            })
-            
-            // 强制输入卡密选项
-            alert.addAction(UIAlertAction(title: "输入卡密", style: .default) { [weak self] _ in
-                self?.promptUnlockCode(for: app)
-            })
-            
-            // 取消选项
-            alert.addAction(UIAlertAction(title: "取消", style: .cancel))
-            
-            self?.present(alert, animated: true)
-        }
-    }
 
     private func verifyUnlockCode(_ code: String, for app: AppData) {
-        // 确保卡密不为空
-        guard !code.isEmpty else {
-            showError(title: "验证失败", message: "卡密不能为空")
-            return
-        }
-        
-        // 确保设备标识有效
-        let deviceId = deviceUUID
-        guard !deviceId.isEmpty else {
-            showError(title: "验证失败", message: "无法获取设备标识，请重新启动应用")
-            return
-        }
-        
-        Debug.shared.log(message: "开始验证卡密: \(code) 用于应用: \(app.id), 设备: \(deviceId)")
-        
         // 使用ServerController验证卡密
         ServerController.shared.verifyCard(cardKey: code, appId: app.id) { [weak self] success, message in
             DispatchQueue.main.async {
                 if success {
-                    // 验证成功，保存本地解锁状态
+                    // 手动设置本地解锁状态
                     UserDefaults.standard.set(true, forKey: "app_unlocked_\(app.id)")
-                    UserDefaults.standard.synchronize()
                     
-                    Debug.shared.log(message: "卡密验证成功: \(app.name)")
+                    // 显示成功消息
+                    let alert = UIAlertController(
+                        title: "验证成功",
+                        message: message ?? "卡密验证成功",
+                        preferredStyle: .alert
+                    )
                     
-                    // 刷新服务器上的应用状态
-                    ServerController.shared.refreshAppDetail(appId: app.id) { _, _ in
-                        // 无论刷新成功与否，都继续安装流程
-                    }
-                    
-                    // 检查响应中是否包含plist链接
-                    if let responsePlist = message, responsePlist.contains("https://") && responsePlist.contains(".plist") {
-                        // 显示成功消息
-                        let alert = UIAlertController(
-                            title: "验证成功",
-                            message: "卡密验证成功，即将安装应用",
-                            preferredStyle: .alert
-                        )
+                    alert.addAction(UIAlertAction(title: "确定", style: .default) { [weak self] _ in
+                        // 在用户点击确定后，刷新应用详情
+                        let refreshAlert = UIAlertController(title: "刷新中", message: "正在刷新应用信息...", preferredStyle: .alert)
+                        self?.present(refreshAlert, animated: true)
                         
-                        self?.present(alert, animated: true)
-                        
-                        // 短暂显示后关闭
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                            alert.dismiss(animated: true) {
-                                // 创建一个更新后的应用对象，使用验证响应中的plist
-                                let updatedAppData = AppData(
-                                    id: app.id,
-                                    name: app.name,
-                                    date: app.date,
-                                    size: app.size,
-                                    channel: app.channel,
-                                    build: app.build,
-                                    version: app.version,
-                                    identifier: app.identifier,
-                                    pkg: app.pkg,
-                                    icon: app.icon,
-                                    plist: responsePlist,
-                                    web_icon: app.web_icon,
-                                    type: app.type,
-                                    requires_key: app.requires_key,
-                                    created_at: app.created_at,
-                                    updated_at: app.updated_at,
-                                    requiresUnlock: true,
-                                    isUnlocked: true
-                                )
+                        // 使用新增的refreshAppDetail方法
+                        ServerController.shared.refreshAppDetail(appId: app.id) { success, error in
+                            DispatchQueue.main.async {
+                                refreshAlert.dismiss(animated: true)
                                 
-                                // 直接开始安装
-                                self?.startInstallation(for: updatedAppData)
-                            }
-                        }
-                    } else {
-                        // 显示成功消息
-                        let alert = UIAlertController(
-                            title: "验证成功",
-                            message: message ?? "卡密验证成功",
-                            preferredStyle: .alert
-                        )
-                        
-                        alert.addAction(UIAlertAction(title: "确定", style: .default) { [weak self] _ in
-                            // 在用户点击确定后，刷新应用详情
-                            let refreshAlert = UIAlertController(title: "刷新中", message: "正在刷新应用信息...", preferredStyle: .alert)
-                            self?.present(refreshAlert, animated: true)
-                            
-                            // 使用refreshAppDetail方法刷新应用绑定状态
-                            ServerController.shared.refreshAppDetail(appId: app.id) { success, error in
-                                DispatchQueue.main.async {
-                                    refreshAlert.dismiss(animated: true)
+                                if success {
+                                    // 显示短暂的成功提示
+                                    let successAlert = UIAlertController(
+                                        title: "解锁成功",
+                                        message: "应用已解锁，即将开始安装",
+                                        preferredStyle: .alert
+                                    )
+                                    self?.present(successAlert, animated: true)
                                     
-                                    if success {
-                                        // 显示短暂的成功提示
-                                        let successAlert = UIAlertController(
-                                            title: "解锁成功",
-                                            message: "应用已解锁，即将开始安装",
-                                            preferredStyle: .alert
-                                        )
-                                        self?.present(successAlert, animated: true)
-                                        
-                                        // 短暂显示后关闭
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                            successAlert.dismiss(animated: true) {
-                                                // 创建一个更新后的应用对象，标记为已解锁
-                                                _ = app
-                                                let updatedAppData = AppData(
-                                                    id: app.id,
-                                                    name: app.name,
-                                                    date: app.date,
-                                                    size: app.size,
-                                                    channel: app.channel,
-                                                    build: app.build,
-                                                    version: app.version,
-                                                    identifier: app.identifier,
-                                                    pkg: app.pkg,
-                                                    icon: app.icon,
-                                                    plist: app.plist,
-                                                    web_icon: app.web_icon,
-                                                    type: app.type,
-                                                    requires_key: app.requires_key,
-                                                    created_at: app.created_at,
-                                                    updated_at: app.updated_at,
-                                                    requiresUnlock: true,
-                                                    isUnlocked: true
-                                                )
-                                                
-                                                // 重新获取应用详情并继续安装
-                                                self?.fetchAppDetails(for: updatedAppData)
-                                            }
+                                    // 短暂显示后关闭
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                        successAlert.dismiss(animated: true) {
+                                            // 创建一个更新后的应用对象，标记为已解锁
+                                            var updatedApp = app
+                                            let updatedAppData = AppData(
+                                                id: app.id,
+                                                name: app.name,
+                                                date: app.date,
+                                                size: app.size,
+                                                channel: app.channel,
+                                                build: app.build,
+                                                version: app.version,
+                                                identifier: app.identifier,
+                                                pkg: app.pkg,
+                                                icon: app.icon,
+                                                plist: app.plist,
+                                                web_icon: app.web_icon,
+                                                type: app.type,
+                                                requires_key: app.requires_key,
+                                                created_at: app.created_at,
+                                                updated_at: app.updated_at,
+                                                requiresUnlock: true,
+                                                isUnlocked: true
+                                            )
+                                            
+                                            // 重新获取应用详情并继续安装
+                                            self?.fetchAppDetails(for: updatedAppData)
                                         }
-                                    } else {
-                                        // 显示刷新失败但继续获取应用详情
-                                        let errorAlert = UIAlertController(
-                                            title: "刷新失败",
-                                            message: "应用详情刷新失败，但将尝试继续安装",
-                                            preferredStyle: .alert
-                                        )
-                                        self?.present(errorAlert, animated: true)
-                                        
-                                        // 短暂显示后关闭
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                            errorAlert.dismiss(animated: true) {
-                                                // 创建一个更新后的应用对象，标记为已解锁
-                                                _ = app
-                                                let updatedAppData = AppData(
-                                                    id: app.id,
-                                                    name: app.name,
-                                                    date: app.date,
-                                                    size: app.size,
-                                                    channel: app.channel,
-                                                    build: app.build,
-                                                    version: app.version,
-                                                    identifier: app.identifier,
-                                                    pkg: app.pkg,
-                                                    icon: app.icon,
-                                                    plist: app.plist,
-                                                    web_icon: app.web_icon,
-                                                    type: app.type,
-                                                    requires_key: app.requires_key,
-                                                    created_at: app.created_at,
-                                                    updated_at: app.updated_at,
-                                                    requiresUnlock: true,
-                                                    isUnlocked: true
-                                                )
-                                                
-                                                // 尝试常规的获取应用详情
-                                                self?.fetchAppDetails(for: updatedAppData)
-                                            }
+                                    }
+                                } else {
+                                    // 显示刷新失败但继续获取应用详情
+                                    let errorAlert = UIAlertController(
+                                        title: "刷新失败",
+                                        message: "应用详情刷新失败，但将尝试继续安装",
+                                        preferredStyle: .alert
+                                    )
+                                    self?.present(errorAlert, animated: true)
+                                    
+                                    // 短暂显示后关闭
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                        errorAlert.dismiss(animated: true) {
+                                            // 创建一个更新后的应用对象，标记为已解锁
+                                            let updatedAppData = AppData(
+                                                id: app.id,
+                                                name: app.name,
+                                                date: app.date,
+                                                size: app.size,
+                                                channel: app.channel,
+                                                build: app.build,
+                                                version: app.version,
+                                                identifier: app.identifier,
+                                                pkg: app.pkg,
+                                                icon: app.icon,
+                                                plist: app.plist,
+                                                web_icon: app.web_icon,
+                                                type: app.type,
+                                                requires_key: app.requires_key,
+                                                created_at: app.created_at,
+                                                updated_at: app.updated_at,
+                                                requiresUnlock: true,
+                                                isUnlocked: true
+                                            )
+                                            
+                                            // 尝试常规的获取应用详情
+                                            self?.fetchAppDetails(for: updatedAppData)
                                         }
                                     }
                                 }
                             }
-                        })
-                    }
+                        }
+                    })
                 } else {
-                    // 验证失败处理
                     let errorMessage = message ?? "请检查卡密是否正确"
-                    Debug.shared.log(message: "卡密验证失败: \(errorMessage)")
                     
                     // 显示失败消息
                     let alert = UIAlertController(
@@ -663,29 +645,23 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         }
     }
 
-    // 处理安装应用请求
     private func handleInstall(for app: AppData) {
-        // 首先确保有有效的设备标识
-        if deviceUUID.isEmpty {
-            // 设备标识缺失，提示用户获取
+        // 检查是否有UDID
+        if globalDeviceUUID == nil || globalDeviceUUID?.isEmpty == true {
+            // 如果没有UDID，提示获取
             let alert = UIAlertController(
-                title: "需要设备标识",
-                message: "安装应用需要获取设备标识，请点击\"生成设备标识\"按钮开始获取流程。\n\n这是确保您可以安装和使用应用的必要步骤。",
+                title: "需要UDID",
+                message: "安装应用前需要先获取设备UDID",
                 preferredStyle: .alert
             )
             
-            let getDeviceIDAction = UIAlertAction(title: "生成设备标识", style: .default) { [weak self] _ in
-                self?.initializeDeviceID()
-                
-                // 标识生成后继续安装流程
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self?.handleInstall(for: app)
-                }
+            let getUDIDAction = UIAlertAction(title: "获取UDID", style: .default) { [weak self] _ in
+                self?.showUDIDProfileAlert()
             }
             
             let cancelAction = UIAlertAction(title: "取消", style: .cancel, handler: nil)
             
-            alert.addAction(getDeviceIDAction)
+            alert.addAction(getUDIDAction)
             alert.addAction(cancelAction)
             
             present(alert, animated: true, completion: nil)
@@ -694,16 +670,51 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
 
         // 检查应用是否需要卡密 (requires_key = 1)
         if app.requires_key == 1 {
-            print("Debug: 应用需要卡密验证 - 应用ID: \(app.id), requiresKey: \(app.requiresKey)")
-            Debug.shared.log(message: "应用需要卡密: \(app.name)")
+            print("Debug: 应用可能需要卡密验证 - 应用ID: \(app.id), requiresKey: \(app.requiresKey)")
             
-            // 对于需要卡密的应用，先检查服务器授权状态，无论本地是否标记为已解锁
-            print("检查设备授权状态和应用解锁状态")
-            checkDeviceAuthStatus(for: app)
+            // 检查本地是否已解锁
+            let isUnlocked = UserDefaults.standard.bool(forKey: "app_unlocked_\(app.id)")
+            
+            if !isUnlocked {
+                print("Debug: 应用未在本地标记为已解锁，优先获取应用详情或显示卡密输入框")
+                // 应用需要卡密且未在本地标记为已解锁，先获取应用详情
+                fetchAppDetails(for: app)
+                return
+            } else {
+                print("Debug: 应用已在本地标记为已解锁，继续安装流程")
+            }
+        }
+        
+        // 对于免费应用或已标记为已解锁的应用，显示加载指示器
+        let isFreemiumApp = (app.requires_key == 0)
+        var loadingAlert: UIAlertController?
+        
+        if isFreemiumApp {
+            loadingAlert = UIAlertController(title: "准备安装", message: "正在获取安装信息...", preferredStyle: .alert)
+            present(loadingAlert!, animated: true, completion: nil)
+        }
+
+        // 检查app是否有plist数据
+        if let plist = app.plist, !plist.isEmpty {
+            // 如果直接有plist，可以直接处理安装
+            if isFreemiumApp {
+                // 短暂延迟后关闭加载提示，立即安装
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+                    loadingAlert?.dismiss(animated: true) {
+                        self?.startInstallation(for: app)
+                    }
+                }
+            } else {
+                startInstallation(for: app)
+            }
         } else {
-            // 免费应用，直接获取详情并安装
-            print("免费应用，无需卡密，直接获取详情")
-            fetchAppDetails(for: app)
+            // 否则尝试获取详情
+            if isFreemiumApp {
+                // 已经显示了加载提示，直接获取详情
+                fetchAppDetails(for: app, loadingAlertShown: true, existingAlert: loadingAlert)
+            } else {
+                fetchAppDetails(for: app)
+            }
         }
     }
 
@@ -714,180 +725,112 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         if !loadingAlertShown {
             loadingAlert = UIAlertController(title: "加载中", message: "正在获取应用信息...", preferredStyle: .alert)
             present(loadingAlert!, animated: true, completion: nil)
+        } else if loadingAlert != nil {
+            // 更新现有加载提示的消息
+            loadingAlert?.message = "正在获取应用信息..."
+        }
+        
+        // 确保已经有设备UDID
+        if globalDeviceUUID == nil || globalDeviceUUID?.isEmpty == true {
+            // 从设备ID获取
+            let deviceUUID = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+            globalDeviceUUID = deviceUUID
+            updateUDIDDisplay(deviceUUID)
         }
         
         // 使用ServerController获取应用详情
         ServerController.shared.getAppDetail(appId: app.id) { [weak self] appDetail, error in
+            // 关闭加载提示
             DispatchQueue.main.async {
-                // 关闭加载提示
-                loadingAlert?.dismiss(animated: true) {
-                    if let error = error {
-                        print("获取应用详情失败: \(error)")
-                        
-                        // 检查plist是否已有，如果有则可以直接使用
-                        if let plist = app.plist, !plist.isEmpty {
-                            print("应用详情获取失败，但已有plist，尝试直接使用")
-                            
-                            // 如果本地已标记为已解锁，尝试设置解锁状态
-                            let isLocallyUnlocked = UserDefaults.standard.bool(forKey: "app_unlocked_\(app.id)")
-                            let updatedApp = AppData(
-                                id: app.id,
-                                name: app.name,
-                                date: app.date,
-                                size: app.size,
-                                channel: app.channel,
-                                build: app.build,
-                                version: app.version,
-                                identifier: app.identifier,
-                                pkg: app.pkg,
-                                icon: app.icon,
-                                plist: plist,
-                                web_icon: app.web_icon,
-                                type: app.type,
-                                requires_key: app.requires_key,
-                                created_at: app.created_at,
-                                updated_at: app.updated_at,
-                                requiresUnlock: app.requires_key == 1,
-                                isUnlocked: isLocallyUnlocked
-                            )
-                            
-                            // 短暂延迟后开始安装
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                self?.startInstallation(for: updatedApp)
-                            }
-                            return
-                        }
-                        
-                        // 检查应用是否需要卡密
-                        if app.requiresKey {
-                            print("应用需要卡密验证，检查设备授权状态")
-                            self?.checkDeviceAuthStatus(for: app)
-                        } else {
-                            // 显示错误提示
-                            let errorAlert = UIAlertController(
-                                title: "获取应用信息失败",
-                                message: "无法获取应用详细信息，请稍后再试。\n错误: \(error)",
-                                preferredStyle: .alert
-                            )
-                            
-                            // 添加重试按钮
-                            errorAlert.addAction(UIAlertAction(title: "重试", style: .default) { _ in
-                                self?.fetchAppDetails(for: app)
-                            })
-                            
-                            errorAlert.addAction(UIAlertAction(title: "确定", style: .default))
-                            
-                            guard let self = self, self.isViewLoaded && self.view.window != nil else { return }
-                            self.present(errorAlert, animated: true)
-                        }
-                        return
+                loadingAlert?.dismiss(animated: true, completion: nil)
+                
+                if let error = error {
+                    // 如果应用需要验证码，提示输入
+                    if app.requiresKey {
+                        self?.promptUnlockCode(for: app)
+                    } else {
+                        // 显示错误提示
+                        let errorAlert = UIAlertController(
+                            title: "获取应用信息失败",
+                            message: "无法获取应用详细信息，请稍后再试。\n错误: \(error)",
+                            preferredStyle: .alert
+                        )
+                        errorAlert.addAction(UIAlertAction(title: "确定", style: .default))
+                        self?.present(errorAlert, animated: true)
                     }
-                    
-                    guard let appDetail = appDetail else {
-                        print("未获取到应用详情")
-                        
-                        // 如果是需要卡密的应用，检查授权状态
-                        if app.requiresKey {
-                            self?.checkDeviceAuthStatus(for: app)
-                        } else {
-                            let errorAlert = UIAlertController(
-                                title: "获取应用信息失败",
-                                message: "服务器未返回应用详情",
-                                preferredStyle: .alert
-                            )
-                            errorAlert.addAction(UIAlertAction(title: "确定", style: .default))
-                            self?.present(errorAlert, animated: true)
-                        }
-                        return
+                    return
+                }
+                
+                guard let appDetail = appDetail else {
+                    if app.requiresKey {
+                        self?.promptUnlockCode(for: app)
                     }
-                    
-                    // 从服务器获取的应用详情
-                    print("获取到应用详情: \(appDetail.name)")
-                    
-                    // 同步服务器返回的解锁状态到本地
-                    if appDetail.isUnlocked {
-                        print("服务器确认应用已解锁，同步本地解锁状态")
-                        UserDefaults.standard.set(true, forKey: "app_unlocked_\(appDetail.id)")
-                        UserDefaults.standard.synchronize()
+                    return
+                }
+                
+                // 检查应用是否需要解锁且未解锁
+                if (appDetail.requiresUnlock ?? false) && !(appDetail.isUnlocked ?? false) {
+                    // 延迟显示卡密输入框，确保其他弹窗已完全消失
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                        guard let self = self else { return }
+                        self.promptUnlockCode(for: app)
                     }
-                    
-                    // 检查应用是否有plist字段
-                    if let plist = appDetail.plist, !plist.isEmpty {
-                        print("应用详情中含有plist，准备安装")
+                } else {
+                    // 获取plist路径
+                    if let plist = appDetail.plist {
+                        // 应用已解锁或不需要解锁，且有plist可以安装
                         
-                        // 构建完整的应用对象，包含从服务器获取的解锁状态
+                        // 创建一个新的AppData对象，包含更多详情信息
                         let updatedApp = AppData(
                             id: appDetail.id,
                             name: appDetail.name,
-                            date: app.date,
-                            size: app.size,
-                            channel: app.channel,
-                            build: app.build,
+                            date: nil,
+                            size: nil,
+                            channel: nil,
+                            build: nil,
                             version: appDetail.version,
-                            identifier: app.identifier,
+                            identifier: nil,
                             pkg: appDetail.pkg,
                             icon: appDetail.icon,
                             plist: plist,
-                            web_icon: app.web_icon,
-                            type: app.type,
-                            requires_key: appDetail.requiresKey ? 1 : 0,
-                            created_at: app.created_at,
-                            updated_at: app.updated_at,
+                            web_icon: nil,
+                            type: nil,
+                            requires_key: appDetail.requiresUnlock ? 1 : 0,
+                            created_at: nil,
+                            updated_at: nil,
                             requiresUnlock: appDetail.requiresUnlock,
-                            isUnlocked: appDetail.isUnlocked || UserDefaults.standard.bool(forKey: "app_unlocked_\(appDetail.id)")
+                            isUnlocked: appDetail.isUnlocked
                         )
                         
-                        // 判断应用是否需要卡密且未解锁
-                        if (updatedApp.requiresUnlock ?? false) && !(updatedApp.isUnlocked ?? false) {
-                            print("应用需要卡密且未解锁，检查设备绑定状态")
-                            // 检查设备绑定状态
-                            self?.checkDeviceAuthStatus(for: updatedApp)
+                        // 如果应用刚刚通过卡密解锁，显示一个成功信息
+                        if (updatedApp.requiresUnlock ?? false) && (updatedApp.isUnlocked ?? false) {
+                            // 显示解锁成功信息
+                            let successAlert = UIAlertController(
+                                title: "解锁成功",
+                                message: "应用「\(updatedApp.name)」已成功解锁，即将开始安装",
+                                preferredStyle: .alert
+                            )
+                            
+                            self?.present(successAlert, animated: true)
+                            
+                            // 短暂显示后开始安装
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                successAlert.dismiss(animated: true) {
+                                    self?.startInstallation(for: updatedApp)
+                                }
+                            }
                         } else {
-                            // 应用不需要卡密或已解锁，直接安装
-                            print("应用已解锁或不需要卡密，直接安装")
+                            // 普通情况，直接安装
                             self?.startInstallation(for: updatedApp)
                         }
                     } else {
-                        print("应用详情缺少plist")
-                        
-                        // 如果应用需要卡密验证且未解锁
-                        if appDetail.requiresUnlock && !appDetail.isUnlocked {
-                            // 检查设备绑定状态
-                            print("应用需要卡密且未解锁，检查设备绑定状态")
-                            
-                            // 创建一个有相同ID的AppData对象用于验证卡密
-                            let tempApp = AppData(
-                                id: appDetail.id,
-                                name: appDetail.name,
-                                date: nil,
-                                size: nil,
-                                channel: nil,
-                                build: nil,
-                                version: appDetail.version,
-                                identifier: nil,
-                                pkg: nil,
-                                icon: appDetail.icon,
-                                plist: nil,
-                                web_icon: nil,
-                                type: nil,
-                                requires_key: 1,
-                                created_at: nil,
-                                updated_at: nil,
-                                requiresUnlock: true,
-                                isUnlocked: false
-                            )
-                            
-                            self?.checkDeviceAuthStatus(for: tempApp)
-                        } else {
-                            // 显示无法安装提示
-                            let noPlAlert = UIAlertController(
-                                title: "无法安装",
-                                message: "应用缺少安装信息",
-                                preferredStyle: .alert
-                            )
-                            noPlAlert.addAction(UIAlertAction(title: "确定", style: .default))
-                            self?.present(noPlAlert, animated: true)
-                        }
+                        let alert = UIAlertController(
+                            title: "无法安装",
+                            message: "此应用暂时无法安装，请稍后再试",
+                            preferredStyle: .alert
+                        )
+                        alert.addAction(UIAlertAction(title: "确定", style: .default, handler: nil))
+                        self?.present(alert, animated: true, completion: nil)
                     }
                 }
             }
@@ -1056,7 +999,7 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
     // 添加显示UDID帮助指南的方法
     @objc private func showUDIDHelpGuide() {
         let helpVC = UIViewController()
-        helpVC.title = "设备标识信息"
+        helpVC.title = "如何获取UDID"
         helpVC.view.backgroundColor = .systemBackground
         
         let scrollView = UIScrollView()
@@ -1100,69 +1043,42 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         
         // 标题
         let titleLabel = UILabel()
-        titleLabel.text = "关于设备标识"
+        titleLabel.text = "如何获取设备UDID"
         titleLabel.font = UIFont.boldSystemFont(ofSize: 22)
         titleLabel.numberOfLines = 0
         
         // 介绍
         let introLabel = UILabel()
-        introLabel.text = "设备标识是应用存储在设备中的唯一识别码，用于标识您的设备。此标识符保存在设备的钥匙串(Keychain)中，即使卸载应用后重新安装也会保持不变。"
+        introLabel.text = "UDID（唯一设备标识符）是每台iOS设备特有的识别码，安装某些应用需要提供此标识符。以下是获取UDID的步骤："
         introLabel.font = UIFont.systemFont(ofSize: 16)
         introLabel.numberOfLines = 0
         
-        // 使用说明
-        let usageLabel = UILabel()
-        usageLabel.text = "使用说明:"
-        usageLabel.font = UIFont.boldSystemFont(ofSize: 18)
-        usageLabel.numberOfLines = 0
-        
         // 步骤1
-        let step1Label = createStepLabel(number: 1, text: "设备标识已自动生成并显示在应用顶部")
+        let step1Label = createStepLabel(number: 1, text: "在应用内点击\"获取UDID\"按钮")
         
         // 步骤2
-        let step2Label = createStepLabel(number: 2, text: "您可以点击复制按钮复制此标识符")
+        let step2Label = createStepLabel(number: 2, text: "Safari浏览器会打开一个网页，点击\"允许\"下载配置描述文件")
         
         // 步骤3
-        let step3Label = createStepLabel(number: 3, text: "安装应用时系统会自动使用此标识符验证您的设备")
+        let step3Label = createStepLabel(number: 3, text: "前往设置 -> 通用 -> VPN与设备管理，找到并点击下载的描述文件，然后点击\"安装\"")
+        
+        // 步骤4
+        let step4Label = createStepLabel(number: 4, text: "完成安装后将显示UDID信息，网站会自动通过URL Scheme跳转回应用并传递UDID")
         
         // 注意事项
         let noteLabel = UILabel()
-        noteLabel.text = "注意：此标识符仅在当前设备上有效，不会跨设备共享，也不会被用于跟踪用户。"
+        noteLabel.text = "注意：此过程只需完成一次。一旦获取到UDID，应用会自动保存，无需重复操作。"
         noteLabel.font = UIFont.italicSystemFont(ofSize: 16)
         noteLabel.textColor = .systemGray
         noteLabel.numberOfLines = 0
         
-        // 显示当前标识符
-        let currentUUIDLabel = UILabel()
-        currentUUIDLabel.text = "当前设备标识: \n\(deviceUUID)"
-        currentUUIDLabel.font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
-        currentUUIDLabel.textColor = .systemBlue
-        currentUUIDLabel.numberOfLines = 0
-        currentUUIDLabel.textAlignment = .center
-        currentUUIDLabel.backgroundColor = .systemGray6
-        currentUUIDLabel.layer.cornerRadius = 8
-        currentUUIDLabel.layer.masksToBounds = true
-        
-        // 使用容器视图而不是直接设置padding属性
-        let uuidContainer = UIView()
-        uuidContainer.backgroundColor = .systemGray6
-        uuidContainer.layer.cornerRadius = 8
-        uuidContainer.addSubview(currentUUIDLabel)
-        currentUUIDLabel.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            currentUUIDLabel.topAnchor.constraint(equalTo: uuidContainer.topAnchor, constant: 10),
-            currentUUIDLabel.leadingAnchor.constraint(equalTo: uuidContainer.leadingAnchor, constant: 10),
-            currentUUIDLabel.trailingAnchor.constraint(equalTo: uuidContainer.trailingAnchor, constant: -10),
-            currentUUIDLabel.bottomAnchor.constraint(equalTo: uuidContainer.bottomAnchor, constant: -10)
-        ])
-        
-        // 添加刷新按钮
-        let refreshButton = UIButton(type: .system)
-        refreshButton.setTitle("刷新设备标识", for: .normal)
-        refreshButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
-        refreshButton.backgroundColor = UIColor.tintColor
-        refreshButton.setTitleColor(.white, for: .normal)
-        refreshButton.layer.cornerRadius = 10
+        // 添加开始按钮
+        let startButton = UIButton(type: .system)
+        startButton.setTitle("开始获取UDID", for: .normal)
+        startButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
+        startButton.backgroundColor = UIColor.tintColor
+        startButton.setTitleColor(.white, for: .normal)
+        startButton.layer.cornerRadius = 10
         
         // 使用更现代的方式设置按钮内边距
         if #available(iOS 15.0, *) {
@@ -1170,23 +1086,22 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
             config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20)
             config.baseBackgroundColor = UIColor.tintColor
             config.baseForegroundColor = .white
-            refreshButton.configuration = config
+            startButton.configuration = config
         } else {
-            refreshButton.contentEdgeInsets = UIEdgeInsets(top: 12, left: 20, bottom: 12, right: 20)
+            startButton.contentEdgeInsets = UIEdgeInsets(top: 12, left: 20, bottom: 12, right: 20)
         }
         
-        refreshButton.addTarget(self, action: #selector(getUDIDButtonTapped), for: .touchUpInside)
+        startButton.addTarget(self, action: #selector(getUDIDButtonTapped), for: .touchUpInside)
         
         // 添加所有视图到堆栈
         stackView.addArrangedSubview(titleLabel)
         stackView.addArrangedSubview(introLabel)
-        stackView.addArrangedSubview(usageLabel)
         stackView.addArrangedSubview(step1Label)
         stackView.addArrangedSubview(step2Label)
         stackView.addArrangedSubview(step3Label)
+        stackView.addArrangedSubview(step4Label)
         stackView.addArrangedSubview(noteLabel)
-        stackView.addArrangedSubview(uuidContainer)
-        stackView.addArrangedSubview(refreshButton)
+        stackView.addArrangedSubview(startButton)
         
         // 调整堆栈视图内元素宽度
         for view in stackView.arrangedSubviews {
@@ -1194,8 +1109,8 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         }
         
         // 居中显示按钮
-        refreshButton.translatesAutoresizingMaskIntoConstraints = false
-        refreshButton.centerXAnchor.constraint(equalTo: stackView.centerXAnchor).isActive = true
+        startButton.translatesAutoresizingMaskIntoConstraints = false
+        startButton.centerXAnchor.constraint(equalTo: stackView.centerXAnchor).isActive = true
         
         navigationController?.pushViewController(helpVC, animated: true)
     }
@@ -1242,23 +1157,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
     }
 
     private func promptUnlockCode(for app: AppData) {
-        // 确保在主线程执行
-        if !Thread.isMainThread {
-            DispatchQueue.main.async { [weak self] in
-                self?.promptUnlockCode(for: app)
-            }
-            return
-        }
-        
-        // 确保视图已加载到视图层次结构中
-        guard isViewLoaded && view.window != nil else {
-            // 视图未加载到窗口层次结构，延迟执行
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.promptUnlockCode(for: app)
-            }
-            return
-        }
-        
         // 检查当前是否已有弹窗显示
         if let presentedVC = self.presentedViewController {
             // 先关闭当前弹窗，然后再显示卡密输入框
@@ -1345,17 +1243,7 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
 
     // 打开Safari安装描述文件
     @objc private func getUDIDButtonTapped() {
-        // 不再调用showUDIDProfileAlert，直接使用KeychainUUID获取设备标识
-        initializeDeviceID()
-        
-        // 显示成功提示
-        let alert = UIAlertController(
-            title: "已更新",
-            message: "设备标识已更新并保存",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "确定", style: .default, handler: nil))
-        present(alert, animated: true, completion: nil)
+        showUDIDProfileAlert()
     }
 
     // 处理JSON对象为AppData
@@ -1452,7 +1340,7 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                                     )
                                     
                                     confirmAlert.addAction(UIAlertAction(title: "安装", style: .default) { _ in
-                                        self?.checkDeviceAuthStatus(for: app)
+                                        self?.startInstallation(for: app)
                                     })
                                     
                                     confirmAlert.addAction(UIAlertAction(title: "取消", style: .cancel))
@@ -1648,8 +1536,8 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                 let statusMessage = """
                 应用名称: \(appDetail.name)
                 版本: \(appDetail.version)
-                是否需要解锁: \(appDetail.requiresUnlock ? "是" : "否")
-                是否已解锁: \(appDetail.isUnlocked ? "是" : "否")
+                是否需要解锁: \(appDetail.requiresUnlock ?? false ? "是" : "否")
+                是否已解锁: \(appDetail.isUnlocked ?? false ? "是" : "否")
                 UDID: \(globalDeviceUUID ?? "未知")
                 """
                 
@@ -1781,15 +1669,6 @@ class AppCell: UICollectionViewCell {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        setupUI()
-    }
-
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setupUI()
-    }
-    
-    private func setupUI() {
         contentView.layer.cornerRadius = 15
         contentView.layer.masksToBounds = true
         contentView.backgroundColor = .white
@@ -1798,26 +1677,18 @@ class AppCell: UICollectionViewCell {
         contentView.layer.shadowOpacity = 0.1
         contentView.layer.shadowRadius = 5
 
-        // 配置UI元素
-        appIcon.translatesAutoresizingMaskIntoConstraints = false
-        appIcon.layer.cornerRadius = 35 // 一半的设置宽度
-        appIcon.clipsToBounds = true
-        
-        nameLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        nameLabel.textColor = .darkGray
-        nameLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        versionLabel.font = UIFont.systemFont(ofSize: 14, weight: .light)
-        versionLabel.textColor = .lightGray
-        versionLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        installButton.backgroundColor = .systemBlue
-        installButton.layer.cornerRadius = 10
-        installButton.setTitle("安装", for: .normal)
-        installButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .bold)
-        installButton.tintColor = .white
-        installButton.translatesAutoresizingMaskIntoConstraints = false
-        installButton.addTarget(self, action: #selector(installTapped), for: .touchUpInside)
+        let textStackView = UIStackView(arrangedSubviews: [nameLabel, versionLabel])
+        textStackView.axis = .vertical
+        textStackView.spacing = 5
+        textStackView.alignment = .leading
+
+        let stackView = UIStackView(arrangedSubviews: [appIcon, textStackView, installButton])
+        stackView.axis = .horizontal
+        stackView.spacing = 15
+        stackView.alignment = .center
+        stackView.distribution = .fill
+
+        contentView.addSubview(stackView)
         
         // 设置限免标签
         freeLabel.text = "限免"
@@ -1830,40 +1701,46 @@ class AppCell: UICollectionViewCell {
         freeLabel.layer.borderWidth = 1
         freeLabel.layer.borderColor = UIColor.white.cgColor
         freeLabel.isHidden = true // 初始隐藏
-        freeLabel.translatesAutoresizingMaskIntoConstraints = false
         
-        // 添加视图
-        contentView.addSubview(appIcon)
-        contentView.addSubview(nameLabel)
-        contentView.addSubview(versionLabel)
-        contentView.addSubview(installButton)
         contentView.addSubview(freeLabel)
         
-        // 设置布局约束
+        // 设置约束
+        freeLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            appIcon.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 15),
-            appIcon.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            appIcon.widthAnchor.constraint(equalToConstant: 70),
-            appIcon.heightAnchor.constraint(equalToConstant: 70),
-            
-            nameLabel.leadingAnchor.constraint(equalTo: appIcon.trailingAnchor, constant: 15),
-            nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
-            nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: installButton.leadingAnchor, constant: -10),
-            
-            versionLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
-            versionLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 5),
-            versionLabel.trailingAnchor.constraint(lessThanOrEqualTo: installButton.leadingAnchor, constant: -10),
-            
-            installButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -15),
-            installButton.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            installButton.widthAnchor.constraint(equalToConstant: 80),
-            installButton.heightAnchor.constraint(equalToConstant: 40),
-            
             freeLabel.topAnchor.constraint(equalTo: appIcon.topAnchor),
             freeLabel.leadingAnchor.constraint(equalTo: appIcon.leadingAnchor, constant: -5),
             freeLabel.widthAnchor.constraint(equalToConstant: 40),
             freeLabel.heightAnchor.constraint(equalToConstant: 20)
         ])
+        
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
+            stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 15),
+            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -15)
+        ])
+
+        appIcon.translatesAutoresizingMaskIntoConstraints = false
+        appIcon.widthAnchor.constraint(equalToConstant: 70).isActive = true
+        appIcon.heightAnchor.constraint(equalToConstant: 70).isActive = true
+
+        nameLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        nameLabel.textColor = .darkGray
+        versionLabel.font = UIFont.systemFont(ofSize: 14, weight: .light)
+        versionLabel.textColor = .lightGray
+
+        installButton.backgroundColor = .systemBlue
+        installButton.layer.cornerRadius = 10
+        installButton.setTitle("安装", for: .normal)
+        installButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .bold)
+        installButton.tintColor = .white
+        installButton.frame.size = CGSize(width: 100, height: 40)  // 固定按钮大小
+        installButton.addTarget(self, action: #selector(installTapped), for: .touchUpInside)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 
     func configure(with app: StoreCollectionViewController.AppData) {

@@ -172,20 +172,11 @@ class CloudCollectionViewController: UIViewController {
                 addButton.setTitle("添加软件源", for: .normal)
                 addButton.setImage(UIImage(systemName: "plus"), for: .normal)
                 addButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+                addButton.backgroundColor = .systemBlue
+                addButton.setTitleColor(.white, for: .normal)
                 addButton.tintColor = .white
                 addButton.layer.cornerRadius = 20
-                
-                // 使用新API替代废弃的contentEdgeInsets
-                if #available(iOS 15.0, *) {
-                    var config = UIButton.Configuration.filled()
-                    config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20)
-                    config.baseForegroundColor = .white
-                    config.baseBackgroundColor = .systemBlue
-                    addButton.configuration = config
-                } else {
-                    addButton.contentEdgeInsets = UIEdgeInsets(top: 10, left: 20, bottom: 10, right: 20)
-                }
-                
+                addButton.contentEdgeInsets = UIEdgeInsets(top: 10, left: 20, bottom: 10, right: 20)
                 addButton.addTarget(self, action: #selector(addSourceButtonTapped), for: .touchUpInside)
                 
                 stackView.addArrangedSubview(imageView)
