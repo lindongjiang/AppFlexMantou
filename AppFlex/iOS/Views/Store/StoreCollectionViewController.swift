@@ -6,30 +6,6 @@
 //  Copyright © 2025 AppFlex. All rights reserved.
 //
 
-/*
-注意: 需要在AppDelegate中添加以下代码以支持URL Scheme回调:
-
-- 在Info.plist中添加URL Scheme "mantou"
-- 然后在AppDelegate中添加以下方法:
-
-func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
-    // 处理从Safari回调的URL
-    if url.scheme == "mantou" && url.host == "udid" {
-        if let udid = url.pathComponents.last {
-            // 创建通知，传递UDID
-            let userInfo = ["udid": udid]
-            NotificationCenter.default.post(
-                name: NSNotification.Name("UDIDCallbackReceived"),
-                object: nil,
-                userInfo: userInfo
-            )
-            return true
-        }
-    }
-    return false
-}
-*/
-
 import UIKit
 import SafariServices
 
@@ -149,8 +125,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         // 使用KeyChain获取UUID并显示
         initializeDeviceID()
         
-        // 不在viewDidLoad中加载应用列表，推迟到viewDidAppear
-        
         // 添加卡密验证结果的通知监听
         NotificationCenter.default.addObserver(
             self,
@@ -267,8 +241,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         // 更新UI显示
         updateUDIDDisplay(uuid)
         
-        // 调试信息
-        print("设备标识(KeyChain UUID): \(uuid)")
         Debug.shared.log(message: "设备标识: \(uuid)")
         
         // 同时保存到UserDefaults以兼容旧代码
@@ -300,7 +272,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                 loadingAlert.dismiss(animated: true, completion: nil)
                 
                 if let error = error {
-                    print("获取应用列表失败: \(error)")
                     // 显示错误提示
                     let errorAlert = UIAlertController(
                         title: "获取应用失败",
@@ -313,7 +284,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                 }
                 
                 guard let serverApps = serverApps else {
-                    print("没有获取到应用列表")
                     return
                 }
                 
@@ -321,7 +291,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                 let convertedApps: [AppData] = serverApps.map { app in
                     // 检查本地是否已标记为已解锁
                     let isUnlockedLocally = UserDefaults.standard.bool(forKey: "app_unlocked_\(app.id)")
-                    print("Debug: 初始加载应用 - ID: \(app.id), 名称: \(app.name), 需要卡密: \(app.requiresKey), 本地解锁状态: \(isUnlockedLocally)")
                     
                     return AppData(
                         id: app.id,
@@ -355,25 +324,21 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         // 获取设备标识
         let uuid = deviceUUID
         guard !uuid.isEmpty else {
-            print("设备标识无效")
             // 失败时自动尝试重新生成
             initializeDeviceID()
             return
         }
 
         guard let encodedUUID = uuid.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-            print("设备标识编码失败")
             return
         }
 
         // 构建API请求URL - 按照文档规范使用/api/client/check-udid格式
         let urlString = "\(baseURL)/check-udid?udid=\(encodedUUID)"
         guard let url = URL(string: urlString) else {
-            print("URL构建失败")
             return
         }
         
-        print("检查设备授权状态: \(urlString)")
         Debug.shared.log(message: "检查设备授权状态，设备标识: \(uuid)")
         
         // 显示加载中提示
@@ -386,13 +351,11 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
             DispatchQueue.main.async {
                 loadingAlert.dismiss(animated: true) {
                     if let error = error {
-                        print("检查设备授权状态失败：\(error.localizedDescription)")
                         self.handleDeviceCheckError(for: app, error: error)
                         return
                     }
                     
                     guard let data = data else {
-                        print("检查设备授权状态失败：未返回数据")
                         self.promptUnlockCode(for: app)
                         return
                     }
@@ -402,7 +365,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                         
                         if response.success {
                             if response.data.bound {
-                                print("设备标识已绑定，获取应用详情")
                                 Debug.shared.log(message: "设备已授权，绑定数: \(response.data.bindings?.count ?? 0)")
                                 
                                 // 设备已绑定，直接获取应用详情并安装
@@ -410,22 +372,17 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                                 UserDefaults.standard.set(true, forKey: "app_unlocked_\(app.id)")
                                 UserDefaults.standard.synchronize()
                                 
-                                print("设备已授权，直接获取应用详情")
                                 self.fetchAppDetails(for: app)
                             } else {
-                                print("设备标识未绑定，需要验证卡密")
                                 Debug.shared.log(message: "设备未授权，需要卡密验证")
                                 self.promptUnlockCode(for: app)
                             }
                         } else {
-                            print("检查设备授权状态失败：\(response.message ?? "未知错误")")
                             Debug.shared.log(message: "授权检查失败: \(response.message ?? "未知错误")")
                             self.promptUnlockCode(for: app)
                         }
                     } catch {
-                        print("解析设备授权状态响应失败：\(error.localizedDescription)")
                         Debug.shared.log(message: "授权数据解析错误: \(error.localizedDescription)")
-                        print("解析错误，准备显示卡密输入框")
                         self.promptUnlockCode(for: app)
                     }
                 }
@@ -696,15 +653,12 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
 
         // 检查应用是否需要卡密 (requires_key = 1)
         if app.requires_key == 1 {
-            print("Debug: 应用需要卡密验证 - 应用ID: \(app.id), requiresKey: \(app.requiresKey)")
             Debug.shared.log(message: "应用需要卡密: \(app.name)")
             
             // 对于需要卡密的应用，先检查服务器授权状态，无论本地是否标记为已解锁
-            print("检查设备授权状态和应用解锁状态")
             checkDeviceAuthStatus(for: app)
         } else {
             // 免费应用，直接获取详情并安装
-            print("免费应用，无需卡密，直接获取详情")
             fetchAppDetails(for: app)
         }
     }
@@ -724,12 +678,8 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                 // 关闭加载提示
                 loadingAlert?.dismiss(animated: true) {
                     if let error = error {
-                        print("获取应用详情失败: \(error)")
-                        
                         // 检查plist是否已有，如果有则可以直接使用
                         if let plist = app.plist, !plist.isEmpty {
-                            print("应用详情获取失败，但已有plist，尝试直接使用")
-                            
                             // 如果本地已标记为已解锁，尝试设置解锁状态
                             let isLocallyUnlocked = UserDefaults.standard.bool(forKey: "app_unlocked_\(app.id)")
                             let updatedApp = AppData(
@@ -762,7 +712,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                         
                         // 检查应用是否需要卡密
                         if app.requiresKey {
-                            print("应用需要卡密验证，检查设备授权状态")
                             self?.checkDeviceAuthStatus(for: app)
                         } else {
                             // 显示错误提示
@@ -786,8 +735,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                     }
                     
                     guard let appDetail = appDetail else {
-                        print("未获取到应用详情")
-                        
                         // 如果是需要卡密的应用，检查授权状态
                         if app.requiresKey {
                             self?.checkDeviceAuthStatus(for: app)
@@ -804,19 +751,15 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                     }
                     
                     // 从服务器获取的应用详情
-                    print("获取到应用详情: \(appDetail.name)")
                     
                     // 同步服务器返回的解锁状态到本地
                     if appDetail.isUnlocked {
-                        print("服务器确认应用已解锁，同步本地解锁状态")
                         UserDefaults.standard.set(true, forKey: "app_unlocked_\(appDetail.id)")
                         UserDefaults.standard.synchronize()
                     }
                     
                     // 检查应用是否有plist字段
                     if let plist = appDetail.plist, !plist.isEmpty {
-                        print("应用详情中含有plist，准备安装")
-                        
                         // 构建完整的应用对象，包含从服务器获取的解锁状态
                         let updatedApp = AppData(
                             id: appDetail.id,
@@ -841,21 +784,16 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                         
                         // 判断应用是否需要卡密且未解锁
                         if (updatedApp.requiresUnlock ?? false) && !(updatedApp.isUnlocked ?? false) {
-                            print("应用需要卡密且未解锁，检查设备绑定状态")
                             // 检查设备绑定状态
                             self?.checkDeviceAuthStatus(for: updatedApp)
                         } else {
                             // 应用不需要卡密或已解锁，直接安装
-                            print("应用已解锁或不需要卡密，直接安装")
                             self?.startInstallation(for: updatedApp)
                         }
                     } else {
-                        print("应用详情缺少plist")
-                        
                         // 如果应用需要卡密验证且未解锁
                         if appDetail.requiresUnlock && !appDetail.isUnlocked {
                             // 检查设备绑定状态
-                            print("应用需要卡密且未解锁，检查设备绑定状态")
                             
                             // 创建一个有相同ID的AppData对象用于验证卡密
                             let tempApp = AppData(
@@ -1013,7 +951,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         guard let iv = encryptedData["iv"], 
               let data = encryptedData["data"],
               let decryptedURL = AppSecurityManager.shared.decryptString(encryptedData: data, iv: iv) else {
-            print("解密安装URL失败")
             showError(title: "安装失败", message: "无法解析安装信息")
             return
         }
@@ -1045,12 +982,9 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         
         // 加密安装URL
         guard let encryptedInstallURL = encryptInstallURL(plistURL: encodedPlistURL) else {
-            print("加密安装URL失败")
             showError(title: "安装失败", message: "无法准备安装信息")
             return
         }
-        
-        print("已加密安装URL，准备进行安装")
         
         // 判断应用是否可以直接安装
         // 免费应用(requires_key=0)或已解锁的应用(isUnlocked=true)都可以直接安装
@@ -1389,7 +1323,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
     // 处理JSON对象为AppData
     private func parseAppData(_ jsonString: String) -> AppData? {
         guard let data = jsonString.data(using: .utf8) else {
-            print("无法将字符串转换为数据")
             return nil
         }
         
@@ -1401,7 +1334,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                   let version = json?["version"] as? String,
                   let icon = json?["icon"] as? String,
                   let requiresKey = json?["requires_key"] as? Int else {
-                print("JSON缺少必要字段")
                 return nil
             }
             
@@ -1440,21 +1372,15 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                 isUnlocked: false
             )
         } catch {
-            print("JSON解析失败: \(error.localizedDescription)")
             return nil
         }
     }
     
     // 方法用于直接处理应用详情
     private func handleAppJson(_ jsonString: String) {
-        print("处理应用JSON数据")
-        
         if let app = parseAppData(jsonString) {
-            print("成功解析应用数据: \(app.name)")
-            
             // 应用可以安装，并获取到plist
             if let plist = app.plist {
-                print("应用可以安装，原始plist路径: \(plist)")
                 // 添加加载提示
                 let loadingAlert = UIAlertController(title: "处理中", message: "正在准备安装...", preferredStyle: .alert)
                 present(loadingAlert, animated: true) {
@@ -1469,7 +1395,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                                 let isReadyForDirectInstall = app.requires_key == 0 || ((app.requiresUnlock ?? false) && (app.isUnlocked ?? false))
                                 
                                 if isReadyForDirectInstall {
-                                    print("准备直接安装应用")
                                     self?.startInstallation(for: app)
                                 } else {
                                     // 需要确认的应用，显示确认对话框
@@ -1637,8 +1562,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
 
     // 添加一个调试方法，用于检查应用解锁状态
     private func checkAppUnlockStatus(for appId: String) {
-        print("检查应用解锁状态 - 应用ID: \(appId)")
-        
         // 显示加载提示
         let loadingAlert = UIAlertController(title: "检查中", message: "正在检查应用解锁状态...", preferredStyle: .alert)
         present(loadingAlert, animated: true)
@@ -1649,7 +1572,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                 loadingAlert.dismiss(animated: true)
                 
                 if let error = error {
-                    print("检查失败: \(error)")
                     let errorAlert = UIAlertController(
                         title: "检查失败",
                         message: "无法获取应用状态：\(error)",
@@ -1661,7 +1583,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                 }
                 
                 guard let appDetail = appDetail else {
-                    print("未获取到应用详情")
                     let errorAlert = UIAlertController(
                         title: "检查失败",
                         message: "未获取到应用详情",
@@ -1763,8 +1684,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
               let appId = userInfo["appId"] as? String else {
             return
         }
-        
-        print("收到卡密验证结果通知 - 应用ID: \(appId), 结果: \(success ? "成功" : "失败")")
         
         if success {
             // 验证成功，尝试获取应用详情并安装

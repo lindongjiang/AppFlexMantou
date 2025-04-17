@@ -38,11 +38,9 @@ class StringObfuscator {
     
     /// 基于输入生成一个唯一的密钥
     private func generateKey(for input: String) -> [UInt8] {
-        // 使用输入字符串的哈希值作为种子
         let seed = abs(input.hashValue)
         var key = [UInt8]()
         
-        // 生成一个16字节的密钥
         for i in 0..<16 {
             let value = UInt8((seed >> (i * 8 % 64)) & 0xFF)
             key.append(value)
@@ -70,13 +68,11 @@ class StringObfuscator {
 extension StringObfuscator {
     /// 常用域名和URL的安全获取方法
     func getBaseURL() -> String {
-        // 返回基础URL
         return getObfuscatedString([104, 116, 116, 112, 115, 58, 47, 47, 114, 101, 110, 109, 97, 105, 46, 99, 108, 111, 117, 100, 109, 97, 110, 116, 111, 117, 98, 46, 111, 110, 108, 105, 110, 101])
     }
     
     /// 获取资源配置URL
     func getResourceConfigURL() -> String {
-        // 获取配置URL
         let domain = getObfuscatedString([117, 110, 105, 46, 99, 108, 111, 117, 100, 109, 97, 110, 116, 111, 117, 98, 46, 111, 110, 108, 105, 110, 101])
         let path = getObfuscatedString([119, 101, 98, 115, 111, 117, 114, 99, 101, 46, 106, 115, 111, 110])
         let protocol1 = getObfuscatedString([104, 116, 116, 112, 115, 58, 47, 47])
@@ -86,7 +82,6 @@ extension StringObfuscator {
     
     /// 获取社交链接配置URL
     func getSocialConfigURL() -> String {
-        // 获取社交配置URL
         let domain = getObfuscatedString([117, 110, 105, 46, 99, 108, 111, 117, 100, 109, 97, 110, 116, 111, 117, 98, 46, 111, 110, 108, 105, 110, 101])
         let path = getObfuscatedString([109, 97, 110, 116, 111, 117, 46, 106, 115, 111, 110])
         let protocol1 = getObfuscatedString([104, 116, 116, 112, 115, 58, 47, 47])

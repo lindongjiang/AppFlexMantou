@@ -7,10 +7,7 @@
 
 import UIKit
 import WebKit
-// 导入共享模型文件
-@_exported import Foundation
-
-// 资源卡片结构体已移至 StoreModels.swift，直接使用该模型
+import Foundation
 
 class ResourceCenterViewController: UIViewController {
     
