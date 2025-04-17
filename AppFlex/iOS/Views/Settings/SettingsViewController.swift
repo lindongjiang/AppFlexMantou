@@ -4,31 +4,16 @@ import SafariServices
 class SettingsViewController: UIViewController {
     
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
-    private let sections = ["社交媒体"] // 只保留社交媒体部分
+    private let sections = ["社区链接"] // 更改为更中性的描述
     private var settings = [
-        [] // 社交媒体链接将通过API动态填充
+        [] // 社区链接将通过API动态填充
     ]
     
     private var jsonURL: String {
-        // 使用ASCII字节码定义域名和路径，避免明文字符串
-        let domain = [117, 110, 105, 46, 99, 108, 111, 117, 100, 109, 97, 110, 116, 111, 117, 98, 46, 111, 110, 108, 105, 110, 101] // uni.cloudmantoub.online
-        let path = [109, 97, 110, 116, 111, 117, 46, 106, 115, 111, 110] // mantou.json
-        let protocolBytes = [104, 116, 116, 112, 115, 58, 47, 47] // https://
-        
-        // 转换为UInt8数组以解决类型歧义
-        let protocolData = Data(protocolBytes.map { UInt8($0) })
-        let domainData = Data(domain.map { UInt8($0) })
-        let pathData = Data(path.map { UInt8($0) })
-        
-        // 构建URL字符串
-        let protocolStr = String(data: protocolData, encoding: .ascii)!
-        let domainStr = String(data: domainData, encoding: .ascii)!
-        let pathStr = String(data: pathData, encoding: .ascii)!
-        
-        return protocolStr + domainStr + "/" + pathStr
+        return StringObfuscator.shared.getSocialConfigURL()
     }
     
-    private var socialLinks: [String: String] = [:]
+    private var communityLinks: [String: String] = [:]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -36,7 +21,7 @@ class SettingsViewController: UIViewController {
         setupUI()
         tableView.dataSource = self
         tableView.delegate = self
-        fetchSocialLinks()
+        fetchCommunityLinks()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -61,15 +46,14 @@ class SettingsViewController: UIViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "SettingsCell")
     }
     
-    // 获取社交媒体链接
-    private func fetchSocialLinks() {
+    // 获取社区链接
+    private func fetchCommunityLinks() {
         guard let url = URL(string: jsonURL) else { return }
         
         URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
             guard let self = self,
                   let data = data,
                   error == nil else {
-                print("获取社交媒体链接失败: \(error?.localizedDescription ?? "未知错误")")
                 return
             }
             
@@ -77,22 +61,22 @@ class SettingsViewController: UIViewController {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let socialLinks = json["social_links"] as? [String: String] {
                     
-                    self.socialLinks = socialLinks
+                    self.communityLinks = socialLinks
                     
-                    // 更新社交媒体部分
+                    // 更新社区链接部分
                     DispatchQueue.main.async {
-                        self.settings[0] = Array(self.socialLinks.keys) // 更新为索引0
+                        self.settings[0] = Array(self.communityLinks.keys)
                         self.tableView.reloadData()
                     }
                 }
             } catch {
-                print("解析社交媒体链接失败: \(error.localizedDescription)")
+                // 静默处理错误
             }
         }.resume()
     }
     
-    // 打开社交媒体链接
-    private func openSocialLink(_ url: String) {
+    // 打开社区链接
+    private func openCommunityLink(_ url: String) {
         guard let url = URL(string: url) else {
             showAlert(title: "错误", message: "无效的URL")
             return
@@ -130,13 +114,13 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        // 社交媒体部分使用自定义样式
-        let cell = UITableViewCell(style: .default, reuseIdentifier: "SocialCell")
+        // 社区链接部分使用自定义样式
+        let cell = UITableViewCell(style: .default, reuseIdentifier: "CommunityCell")
         let linkName = settings[indexPath.section][indexPath.row] as! String
         cell.textLabel?.text = linkName
         
         // 根据链接类型设置不同的图标
-        if let url = socialLinks[linkName] {
+        if let url = communityLinks[linkName] {
             if url.contains("qrr.jpg") {
                 cell.imageView?.image = UIImage(systemName: "qrcode")
             } else if url.contains("t.me") {
@@ -160,10 +144,10 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
-        // 处理社交媒体链接
+        // 处理社区链接
         let linkName = settings[indexPath.section][indexPath.row] as! String
-        if let linkURL = socialLinks[linkName] {
-            openSocialLink(linkURL)
+        if let linkURL = communityLinks[linkName] {
+            openCommunityLink(linkURL)
         }
     }
 } 

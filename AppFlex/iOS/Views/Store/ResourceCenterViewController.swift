@@ -1,16 +1,18 @@
 //
-//  webcloudCollectionViewController.swift
-//  mantou
+//  ResourceCenterViewController.swift
+//  AppFlex
 //
-//  Created by mantou on 2025/3/30.
+//  Created by AppFlex Developer on 2025/4/17.
 //
 
 import UIKit
 import WebKit
+// 导入共享模型文件
+@_exported import Foundation
 
 // 资源卡片结构体已移至 StoreModels.swift，直接使用该模型
 
-class WebcloudCollectionViewController: UIViewController {
+class ResourceCenterViewController: UIViewController {
     
     // MARK: - 属性
     
@@ -305,7 +307,7 @@ class WebcloudCollectionViewController: UIViewController {
 
 // MARK: - UICollectionViewDataSource, UICollectionViewDelegate
 
-extension WebcloudCollectionViewController: UICollectionViewDataSource, UICollectionViewDelegate {
+extension ResourceCenterViewController: UICollectionViewDataSource, UICollectionViewDelegate {
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return resources.count
@@ -331,5 +333,4 @@ extension WebcloudCollectionViewController: UICollectionViewDataSource, UICollec
     }
 }
 
-// ResourceCollectionViewCell 已移至 StoreModels.swift
-
+// ResourceCollectionViewCell 已移至 StoreModels.swift 

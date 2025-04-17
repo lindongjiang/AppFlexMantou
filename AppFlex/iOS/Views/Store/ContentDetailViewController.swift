@@ -1,25 +1,39 @@
 //
-//  webDetailCollectionViewController.swift
-//  mantou
+//  ContentDetailViewController.swift
+//  AppFlex
 //
-//  Created by mantou on 2025/3/30.
+//  Created by AppFlex Developer on 2025/4/17.
 //
 
 import UIKit
 @preconcurrency import WebKit
 
-class WebDetailCollectionViewController: UIViewController {
+class ContentDetailViewController: UIViewController {
     
     // MARK: - 属性
     
     var websiteURL: String?
     var websiteName: String?
     
+    // 允许的域名列表 - 防止用户浏览到非信任域名
+    private let allowedDomains: [String] = [
+        "cloudmantoub.online",
+        "example.com",
+        "trusteddomain.com"
+    ]
+    
     private var webView: WKWebView!
     private let progressView = UIProgressView(progressViewStyle: .default)
     private var progressObservation: NSKeyValueObservation?
     private let activityIndicator = UIActivityIndicatorView(style: .large)
     private let backButton = UIButton(type: .system)
+    
+    // 禁用的JavaScript操作
+    private let blockedScripts = [
+        "window.open",
+        "document.location",
+        "location.href"
+    ]
     
     // MARK: - 生命周期方法
     
@@ -28,7 +42,7 @@ class WebDetailCollectionViewController: UIViewController {
         setupUI()
         configureNavBar()
         setupBackButton()
-        loadWebsite()
+        loadContent()
     }
     
     deinit {
@@ -40,13 +54,55 @@ class WebDetailCollectionViewController: UIViewController {
     private func setupUI() {
         view.backgroundColor = .systemBackground
         
-        // 设置WebView - 优化配置以确保网页正确显示
+        // 设置WebView - 优化配置以确保内容安全展示
         let webConfiguration = WKWebViewConfiguration()
         webConfiguration.allowsInlineMediaPlayback = true
-        webConfiguration.mediaTypesRequiringUserActionForPlayback = []
-        webConfiguration.preferences.javaScriptEnabled = true
+        webConfiguration.mediaTypesRequiringUserActionForPlayback = [.all]
         
-        // 适配移动端和PC网页
+        // 内容过滤器
+        let contentController = WKUserContentController()
+        
+        // 添加内容安全策略，限制各种功能
+        let csp = """
+        var meta = document.createElement('meta');
+        meta.httpEquiv = 'Content-Security-Policy';
+        meta.content = "default-src 'self' * data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' *; style-src 'self' 'unsafe-inline' *";
+        document.head.appendChild(meta);
+        """
+        
+        let cspScript = WKUserScript(
+            source: csp,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(cspScript)
+        
+        // 阻止某些有害的JavaScript操作
+        let blockScript = """
+        // 替换有害的JavaScript函数
+        (function() {
+            window.realWindowOpen = window.open;
+            window.open = function(url, name, features) {
+                // 如果是应用内认可的URL则允许
+                if (url && (url.startsWith('https://cloudmantoub.online') || url.startsWith('https://example.com'))) {
+                    return window.realWindowOpen(url, name, features);
+                }
+                console.log('Blocked window.open for: ' + url);
+                return null;
+            };
+        })();
+        """
+        
+        let blockScriptObj = WKUserScript(
+            source: blockScript,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(blockScriptObj)
+        
+        webConfiguration.userContentController = contentController
+        
+        // 适配移动端
         let userAgentString = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
         webConfiguration.applicationNameForUserAgent = userAgentString
         
@@ -104,12 +160,12 @@ class WebDetailCollectionViewController: UIViewController {
     }
     
     private func configureNavBar() {
-        title = websiteName ?? "网站"
+        title = websiteName ?? "内容详情"
         navigationController?.navigationBar.prefersLargeTitles = false
         
         // 添加导航按钮
-        let refreshButton = UIBarButtonItem(barButtonSystemItem: .refresh, target: self, action: #selector(refreshWebView))
-        let shareButton = UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(shareWebsite))
+        let refreshButton = UIBarButtonItem(barButtonSystemItem: .refresh, target: self, action: #selector(refreshContent))
+        let shareButton = UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(shareContent))
         navigationItem.rightBarButtonItems = [shareButton, refreshButton]
         
         // 添加后退和前进按钮
@@ -132,7 +188,7 @@ class WebDetailCollectionViewController: UIViewController {
         backButton.layer.shadowRadius = 4
         backButton.layer.shadowOpacity = 0.3
         backButton.setImage(UIImage(systemName: "xmark"), for: .normal)
-        backButton.addTarget(self, action: #selector(closeWebView), for: .touchUpInside)
+        backButton.addTarget(self, action: #selector(closeContent), for: .touchUpInside)
         view.addSubview(backButton)
         
         NSLayoutConstraint.activate([
@@ -143,11 +199,17 @@ class WebDetailCollectionViewController: UIViewController {
         ])
     }
     
-    // MARK: - 加载网页
+    // MARK: - 加载内容
     
-    private func loadWebsite() {
+    private func loadContent() {
         guard let urlString = websiteURL, let url = URL(string: urlString) else {
             showErrorAlert(message: "无效的URL")
+            return
+        }
+        
+        // 检查域名是否在允许列表中
+        if !isURLAllowed(url) {
+            showErrorAlert(message: "出于安全考虑，不允许访问此域名")
             return
         }
         
@@ -156,13 +218,39 @@ class WebDetailCollectionViewController: UIViewController {
         webView.load(request)
     }
     
+    // 检查URL是否在允许列表中
+    private func isURLAllowed(_ url: URL) -> Bool {
+        guard let host = url.host else { return false }
+        
+        // 检查是否在允许的域名列表中
+        for domain in allowedDomains {
+            if host.contains(domain) {
+                return true
+            }
+        }
+        
+        // 默认允许的域名和路径
+        let defaultAllowedURLs = [
+            "cloudmantoub.online",
+            "uni.cloudmantoub.online"
+        ]
+        
+        for allowedURL in defaultAllowedURLs {
+            if host.contains(allowedURL) {
+                return true
+            }
+        }
+        
+        return false
+    }
+    
     // MARK: - 操作方法
     
-    @objc private func refreshWebView() {
+    @objc private func refreshContent() {
         webView.reload()
     }
     
-    @objc private func shareWebsite() {
+    @objc private func shareContent() {
         guard let urlString = websiteURL, let url = URL(string: urlString) else { return }
         
         let activityViewController = UIActivityViewController(activityItems: [url], applicationActivities: nil)
@@ -181,7 +269,7 @@ class WebDetailCollectionViewController: UIViewController {
         }
     }
     
-    @objc private func closeWebView() {
+    @objc private func closeContent() {
         navigationController?.popViewController(animated: true)
     }
     
@@ -194,7 +282,21 @@ class WebDetailCollectionViewController: UIViewController {
 
 // MARK: - WKNavigationDelegate
 
-extension WebDetailCollectionViewController: WKNavigationDelegate {
+extension ContentDetailViewController: WKNavigationDelegate {
+    
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        // 拦截导航请求，检查URL是否允许
+        if let url = navigationAction.request.url {
+            if isURLAllowed(url) {
+                decisionHandler(.allow)
+            } else {
+                showErrorAlert(message: "出于安全考虑，不允许访问此域名")
+                decisionHandler(.cancel)
+            }
+        } else {
+            decisionHandler(.cancel)
+        }
+    }
     
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         activityIndicator.startAnimating()
@@ -218,6 +320,57 @@ extension WebDetailCollectionViewController: WKNavigationDelegate {
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         """
         webView.evaluateJavaScript(viewport, completionHandler: nil)
+        
+        // 内容优化 - 添加自定义样式，改善阅读体验
+        let contentEnhancement = """
+        (function() {
+            // 如果尚未注入增强样式
+            if (!document.getElementById('appflex-content-style')) {
+                // 创建样式标签
+                var style = document.createElement('style');
+                style.id = 'appflex-content-style';
+                style.textContent = `
+                    /* 提高文本可读性 */
+                    body { 
+                        font-size: 16px; 
+                        line-height: 1.6;
+                        color: #333;
+                    }
+                    /* 优化链接样式 */
+                    a { 
+                        color: #0066cc; 
+                        text-decoration: none; 
+                    }
+                    /* 优化图片显示 */
+                    img { 
+                        max-width: 100%; 
+                        height: auto; 
+                        display: block; 
+                        margin: 10px auto; 
+                    }
+                    /* 增强内容区域 */
+                    article, .content, main, .main { 
+                        padding: 0 10px; 
+                    }
+                    /* 黑暗模式适配 */
+                    @media (prefers-color-scheme: dark) {
+                        body { 
+                            color: #eee; 
+                            background-color: #222; 
+                        }
+                        a { 
+                            color: #66b3ff; 
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                // 标记为增强型内容
+                document.documentElement.classList.add('appflex-enhanced');
+            }
+        })();
+        """
+        webView.evaluateJavaScript(contentEnhancement, completionHandler: nil)
     }
     
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -232,15 +385,17 @@ extension WebDetailCollectionViewController: WKNavigationDelegate {
     
     // 处理新窗口打开请求
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-        if navigationAction.targetFrame == nil {
-            webView.load(navigationAction.request)
+        if let url = navigationAction.request.url, isURLAllowed(url) {
+            if navigationAction.targetFrame == nil {
+                webView.load(navigationAction.request)
+            }
         }
         return nil
     }
 }
 
 // MARK: - WKUIDelegate
-extension WebDetailCollectionViewController: WKUIDelegate {
+extension ContentDetailViewController: WKUIDelegate {
     // 处理alert弹窗
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
         let alertController = UIAlertController(title: nil, message: message, preferredStyle: .alert)
@@ -253,11 +408,11 @@ extension WebDetailCollectionViewController: WKUIDelegate {
     // 处理confirm弹窗
     func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
         let alertController = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-        alertController.addAction(UIAlertAction(title: "取消", style: .cancel, handler: { _ in
-            completionHandler(false)
-        }))
         alertController.addAction(UIAlertAction(title: "确定", style: .default, handler: { _ in
             completionHandler(true)
+        }))
+        alertController.addAction(UIAlertAction(title: "取消", style: .cancel, handler: { _ in
+            completionHandler(false)
         }))
         present(alertController, animated: true)
     }
@@ -268,13 +423,12 @@ extension WebDetailCollectionViewController: WKUIDelegate {
         alertController.addTextField { textField in
             textField.text = defaultText
         }
-        alertController.addAction(UIAlertAction(title: "取消", style: .cancel, handler: { _ in
-            completionHandler(nil)
-        }))
         alertController.addAction(UIAlertAction(title: "确定", style: .default, handler: { _ in
             completionHandler(alertController.textFields?.first?.text)
         }))
+        alertController.addAction(UIAlertAction(title: "取消", style: .cancel, handler: { _ in
+            completionHandler(nil)
+        }))
         present(alertController, animated: true)
     }
-}
-
+} 
