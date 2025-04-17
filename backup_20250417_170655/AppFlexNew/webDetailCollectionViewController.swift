@@ -1,16 +1,9 @@
-//
-//  webDetailCollectionViewController.swift
-//  mantou
-//
-//  Created by mantou on 2025/3/30.
-//
 
 import UIKit
 @preconcurrency import WebKit
 
 class WebDetailCollectionViewController: UIViewController {
     
-    // MARK: - 属性
     
     var websiteURL: String?
     var websiteName: String?
@@ -21,7 +14,6 @@ class WebDetailCollectionViewController: UIViewController {
     private let activityIndicator = UIActivityIndicatorView(style: .large)
     private let backButton = UIButton(type: .system)
     
-    // MARK: - 生命周期方法
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -35,22 +27,18 @@ class WebDetailCollectionViewController: UIViewController {
         progressObservation?.invalidate()
     }
     
-    // MARK: - UI设置
     
     private func setupUI() {
         view.backgroundColor = .systemBackground
         
-        // 设置WebView - 优化配置以确保网页正确显示
         let webConfiguration = WKWebViewConfiguration()
         webConfiguration.allowsInlineMediaPlayback = true
         webConfiguration.mediaTypesRequiringUserActionForPlayback = []
         webConfiguration.preferences.javaScriptEnabled = true
         
-        // 适配移动端和PC网页
         let userAgentString = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
         webConfiguration.applicationNameForUserAgent = userAgentString
         
-        // 配置WebView及其frame
         webView = WKWebView(frame: view.bounds, configuration: webConfiguration)
         webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         webView.navigationDelegate = self
@@ -59,22 +47,18 @@ class WebDetailCollectionViewController: UIViewController {
         webView.backgroundColor = .systemBackground
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
         
-        // 添加WebView
         view.addSubview(webView)
         
-        // 设置进度条
         progressView.translatesAutoresizingMaskIntoConstraints = false
         progressView.progressTintColor = .systemBlue
         progressView.trackTintColor = .systemGray5
         view.addSubview(progressView)
         
-        // 设置加载指示器
         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
         activityIndicator.hidesWhenStopped = true
         activityIndicator.color = .systemBlue
         view.addSubview(activityIndicator)
         
-        // 设置约束
         NSLayoutConstraint.activate([
             progressView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             progressView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -85,12 +69,10 @@ class WebDetailCollectionViewController: UIViewController {
             activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
         
-        // 观察进度变化
         progressObservation = webView.observe(\.estimatedProgress, options: [.new]) { [weak self] webView, _ in
             guard let self = self else { return }
             self.progressView.progress = Float(webView.estimatedProgress)
             
-            // 当加载完成时隐藏进度条
             if webView.estimatedProgress >= 1.0 {
                 UIView.animate(withDuration: 0.3, delay: 0.3, options: .curveEaseOut, animations: {
                     self.progressView.alpha = 0
@@ -107,18 +89,15 @@ class WebDetailCollectionViewController: UIViewController {
         title = websiteName ?? "网站"
         navigationController?.navigationBar.prefersLargeTitles = false
         
-        // 添加导航按钮
         let refreshButton = UIBarButtonItem(barButtonSystemItem: .refresh, target: self, action: #selector(refreshWebView))
         let shareButton = UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(shareWebsite))
         navigationItem.rightBarButtonItems = [shareButton, refreshButton]
         
-        // 添加后退和前进按钮
         let backButton = UIBarButtonItem(image: UIImage(systemName: "chevron.left"), style: .plain, target: self, action: #selector(goBack))
         let forwardButton = UIBarButtonItem(image: UIImage(systemName: "chevron.right"), style: .plain, target: self, action: #selector(goForward))
         
         navigationItem.leftBarButtonItems = [backButton, forwardButton]
         
-        // 设置导航栏返回按钮
         navigationItem.backBarButtonItem = UIBarButtonItem(title: "返回", style: .plain, target: nil, action: nil)
     }
     
@@ -143,7 +122,6 @@ class WebDetailCollectionViewController: UIViewController {
         ])
     }
     
-    // MARK: - 加载网页
     
     private func loadWebsite() {
         guard let urlString = websiteURL, let url = URL(string: urlString) else {
@@ -156,7 +134,6 @@ class WebDetailCollectionViewController: UIViewController {
         webView.load(request)
     }
     
-    // MARK: - 操作方法
     
     @objc private func refreshWebView() {
         webView.reload()
@@ -192,7 +169,6 @@ class WebDetailCollectionViewController: UIViewController {
     }
 }
 
-// MARK: - WKNavigationDelegate
 
 extension WebDetailCollectionViewController: WKNavigationDelegate {
     
@@ -203,11 +179,9 @@ extension WebDetailCollectionViewController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         activityIndicator.stopAnimating()
         
-        // 更新导航按钮状态
         navigationItem.leftBarButtonItems?[0].isEnabled = webView.canGoBack
         navigationItem.leftBarButtonItems?[1].isEnabled = webView.canGoForward
         
-        // 最小化JavaScript干预，只添加基本的viewport设置
         let viewport = """
         var meta = document.querySelector('meta[name="viewport"]');
         if (!meta) {
@@ -230,7 +204,6 @@ extension WebDetailCollectionViewController: WKNavigationDelegate {
         showErrorAlert(message: "加载失败: \(error.localizedDescription)")
     }
     
-    // 处理新窗口打开请求
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if navigationAction.targetFrame == nil {
             webView.load(navigationAction.request)
@@ -239,9 +212,7 @@ extension WebDetailCollectionViewController: WKNavigationDelegate {
     }
 }
 
-// MARK: - WKUIDelegate
 extension WebDetailCollectionViewController: WKUIDelegate {
-    // 处理alert弹窗
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
         let alertController = UIAlertController(title: nil, message: message, preferredStyle: .alert)
         alertController.addAction(UIAlertAction(title: "确定", style: .default, handler: { _ in
@@ -250,7 +221,6 @@ extension WebDetailCollectionViewController: WKUIDelegate {
         present(alertController, animated: true)
     }
     
-    // 处理confirm弹窗
     func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
         let alertController = UIAlertController(title: nil, message: message, preferredStyle: .alert)
         alertController.addAction(UIAlertAction(title: "取消", style: .cancel, handler: { _ in
@@ -262,7 +232,6 @@ extension WebDetailCollectionViewController: WKUIDelegate {
         present(alertController, animated: true)
     }
     
-    // 处理prompt弹窗
     func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (String?) -> Void) {
         let alertController = UIAlertController(title: nil, message: prompt, preferredStyle: .alert)
         alertController.addTextField { textField in

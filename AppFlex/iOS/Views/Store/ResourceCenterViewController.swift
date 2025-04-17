@@ -1,9 +1,3 @@
-//
-//  ResourceCenterViewController.swift
-//  AppFlex
-//
-//  Created by AppFlex Developer on 2025/4/17.
-//
 
 import UIKit
 import WebKit
@@ -11,7 +5,6 @@ import Foundation
 
 class ResourceCenterViewController: UIViewController {
     
-    // MARK: - 属性
     
     private var collectionView: UICollectionView!
     private var resources: [ResourceCard] = []
@@ -25,10 +18,8 @@ class ResourceCenterViewController: UIViewController {
     private var isLoading = false
     private let loadingIndicator = UIActivityIndicatorView(style: .large)
     
-    // 用于在同一个TabBar页面切换的分段控制
     private let segmentedControl = UISegmentedControl(items: ["内容资源", "应用资源"])
     
-    // MARK: - 生命周期方法
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -44,23 +35,19 @@ class ResourceCenterViewController: UIViewController {
             fetchResourceData()
         }
         
-        // 确保选择了"内容资源"标签
         segmentedControl.selectedSegmentIndex = 0
     }
     
-    // MARK: - UI设置
     
     private func setupUI() {
         view.backgroundColor = .systemBackground
         
-        // 设置CollectionView布局
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .vertical
         layout.minimumLineSpacing = 20
         layout.minimumInteritemSpacing = 16
         layout.sectionInset = UIEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
         
-        // 计算每行显示的卡片数量和大小
         let screenWidth = UIScreen.main.bounds.width
         let itemsPerRow: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 3 : 2
         let availableWidth = screenWidth - layout.sectionInset.left - layout.sectionInset.right - (itemsPerRow - 1) * layout.minimumInteritemSpacing
@@ -68,7 +55,6 @@ class ResourceCenterViewController: UIViewController {
         let itemHeight: CGFloat = 160 // 增加卡片高度以适应图片
         layout.itemSize = CGSize(width: itemWidth, height: itemHeight)
         
-        // 创建CollectionView
         collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
         collectionView.backgroundColor = .systemGroupedBackground
         collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -79,13 +65,11 @@ class ResourceCenterViewController: UIViewController {
         collectionView.contentInset = UIEdgeInsets(top: 50, left: 0, bottom: 0, right: 0) // 为分段控制留出空间
         view.addSubview(collectionView)
         
-        // 添加下拉刷新控件
         let refreshControl = UIRefreshControl()
         refreshControl.tintColor = .systemBlue
         refreshControl.addTarget(self, action: #selector(refreshResources), for: .valueChanged)
         collectionView.refreshControl = refreshControl
         
-        // 配置加载指示器
         loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
         loadingIndicator.hidesWhenStopped = true
         loadingIndicator.color = .systemBlue
@@ -120,7 +104,6 @@ class ResourceCenterViewController: UIViewController {
         title = "资源中心"
         navigationController?.navigationBar.prefersLargeTitles = true
         
-        // 设置导航栏样式
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = .systemBackground
@@ -132,12 +115,10 @@ class ResourceCenterViewController: UIViewController {
         navigationController?.navigationBar.compactAppearance = appearance
         navigationController?.navigationBar.tintColor = .systemBlue
         
-        // 添加刷新按钮
         let refreshButton = UIBarButtonItem(image: UIImage(systemName: "arrow.clockwise"), style: .plain, target: self, action: #selector(refreshResources))
         navigationItem.rightBarButtonItem = refreshButton
     }
     
-    // 添加空状态视图
     private func setupEmptyStateView() {
         if resources.isEmpty && !isLoading {
             if emptyStateView == nil {
@@ -210,17 +191,13 @@ class ResourceCenterViewController: UIViewController {
     
     @objc private func segmentChanged(_ sender: UISegmentedControl) {
         if sender.selectedSegmentIndex == 0 {
-            // 内容资源 - 当前页面
             fetchResourceData()
         } else {
-            // 应用资源 - 切换到CloudCollectionViewController
             let cloudVC = CloudCollectionViewController()
-            // 保持相同的导航控制器，只替换当前视图控制器
             navigationController?.setViewControllers([cloudVC], animated: false)
         }
     }
     
-    // MARK: - 数据获取
     
     private func fetchResourceData() {
         guard !isLoading else { return }
@@ -266,14 +243,12 @@ class ResourceCenterViewController: UIViewController {
                         
                         var newResources: [ResourceCard] = []
                         
-                        // 解析更新后的JSON结构，支持图片
                         for (name, details) in socialLinks {
                             if let detailsDict = details as? [String: String] {
                                 let url = detailsDict["url"] ?? ""
                                 let imageURL = detailsDict["image"] ?? ""
                                 newResources.append(ResourceCard(name: name, url: url, imageURL: imageURL))
                             } else if let url = details as? String {
-                                // 向下兼容旧格式
                                 newResources.append(ResourceCard(name: name, url: url, imageURL: nil))
                             }
                         }
@@ -302,7 +277,6 @@ class ResourceCenterViewController: UIViewController {
     }
 }
 
-// MARK: - UICollectionViewDataSource, UICollectionViewDelegate
 
 extension ResourceCenterViewController: UICollectionViewDataSource, UICollectionViewDelegate {
     
@@ -322,7 +296,6 @@ extension ResourceCenterViewController: UICollectionViewDataSource, UICollection
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let resource = resources[indexPath.item]
         
-        // 创建ContentDetailViewController并显示所选内容
         let contentDetailVC = ContentDetailViewController()
         contentDetailVC.websiteURL = resource.url
         contentDetailVC.websiteName = resource.name
@@ -330,4 +303,3 @@ extension ResourceCenterViewController: UICollectionViewDataSource, UICollection
     }
 }
 
-// ResourceCollectionViewCell 已移至 StoreModels.swift 

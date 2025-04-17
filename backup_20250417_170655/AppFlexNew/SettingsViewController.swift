@@ -20,7 +20,6 @@ class SettingsViewController: UIViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // 刷新表格以更新UDID状态
         tableView.reloadData()
     }
     
@@ -41,7 +40,6 @@ class SettingsViewController: UIViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "SettingsCell")
     }
     
-    // 显示UDID设置界面
     private func showUDIDSettings() {
         let udidVC = UDIDSettingsViewController()
         navigationController?.pushViewController(udidVC, animated: true)
@@ -60,15 +58,12 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "SettingsCell", for: indexPath)
         
-        // 重置单元格样式
         cell.detailTextLabel?.text = nil
         cell.accessoryType = .disclosureIndicator
         
         cell.textLabel?.text = settings[indexPath.section][indexPath.row]
         
-        // 为UDID设置添加详细信息
         if indexPath.section == 1 && indexPath.row == 0 {
-            // 使用子标题样式单元格显示UDID状态
             let styledCell = UITableViewCell(style: .value1, reuseIdentifier: "SettingsDetailCell")
             styledCell.textLabel?.text = settings[indexPath.section][indexPath.row]
             
@@ -94,11 +89,8 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
-        // 处理设置项点击
         let selectedSetting = settings[indexPath.section][indexPath.row]
-        print("选择了设置: \(selectedSetting)")
         
-        // 处理UDID设置
         if indexPath.section == 1 && indexPath.row == 0 {
             showUDIDSettings()
         }

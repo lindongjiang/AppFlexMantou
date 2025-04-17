@@ -1,6 +1,5 @@
 import Foundation
 
-/// 简单的调试日志工具类
 class DebugLogger {
     static let shared = DebugLogger()
     
@@ -23,13 +22,11 @@ class DebugLogger {
 func debugLog(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
 }
 
-/// 安全的打印函数，在提交AppStore时不会执行任何操作
 func securePrint(_ items: Any..., separator: String = " ", terminator: String = "\n") {
     #if DEBUG
     #endif
 }
 
-/// 简单的调试日志工具类
 class Debug {
     static let shared = Debug()
     
@@ -43,14 +40,12 @@ class Debug {
     private init() {
     }
     
-    /// 记录调试信息
     func log(message: String) {
         guard isEnabled else { return }
         
         saveToFile(message)
     }
     
-    /// 记录错误信息
     func logError(_ error: Error, function: String = #function) {
         log(message: "ERROR in \(function): \(error.localizedDescription)")
     }

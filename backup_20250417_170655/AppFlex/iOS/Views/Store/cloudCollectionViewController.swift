@@ -1,13 +1,6 @@
-//
-//  cloudCollectionViewController.swift
-//  mantou
-//
-//  Created by mantou on 2025/3/28.
-//
 
 import UIKit
 
-// 软件源卡片数据模型
 struct SourceCard {
     let name: String
     let sourceURL: String
@@ -16,17 +9,14 @@ struct SourceCard {
 
 class CloudCollectionViewController: UIViewController {
     
-    // MARK: - 属性
     
     private var collectionView: UICollectionView!
     private var sources: [SourceCard] = []
     private let cellIdentifier = "SourceCell"
     private var emptyStateView: UIView?
     
-    // 用于在同一个TabBar页面切换的分段控制
     private let segmentedControl = UISegmentedControl(items: ["网站源", "软件源"])
     
-    // MARK: - 生命周期方法
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -40,23 +30,19 @@ class CloudCollectionViewController: UIViewController {
         super.viewWillAppear(animated)
         loadSavedSources()
         
-        // 确保选择了"软件源"标签
         segmentedControl.selectedSegmentIndex = 1
     }
     
-    // MARK: - UI设置
     
     private func setupUI() {
         view.backgroundColor = .systemBackground
         
-        // 设置CollectionView布局
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .vertical
         layout.minimumLineSpacing = 20
         layout.minimumInteritemSpacing = 16
         layout.sectionInset = UIEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
         
-        // 计算每行显示的卡片数量和大小
         let screenWidth = UIScreen.main.bounds.width
         let itemsPerRow: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 3 : 1
         let availableWidth = screenWidth - layout.sectionInset.left - layout.sectionInset.right - (itemsPerRow - 1) * layout.minimumInteritemSpacing
@@ -64,7 +50,6 @@ class CloudCollectionViewController: UIViewController {
         let itemHeight: CGFloat = 100 // 使用固定高度的卡片
         layout.itemSize = CGSize(width: itemWidth, height: itemHeight)
         
-        // 创建CollectionView
         collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
         collectionView.backgroundColor = .systemGroupedBackground
         collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -75,7 +60,6 @@ class CloudCollectionViewController: UIViewController {
         collectionView.contentInset = UIEdgeInsets(top: 50, left: 0, bottom: 0, right: 0) // 为分段控制留出空间
         view.addSubview(collectionView)
         
-        // 添加下拉刷新控件
         let refreshControl = UIRefreshControl()
         refreshControl.tintColor = .systemBlue
         refreshControl.addTarget(self, action: #selector(refreshSources), for: .valueChanged)
@@ -105,7 +89,6 @@ class CloudCollectionViewController: UIViewController {
         title = "软件源"
         navigationController?.navigationBar.prefersLargeTitles = true
         
-        // 设置导航栏样式
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = .systemBackground
@@ -117,26 +100,20 @@ class CloudCollectionViewController: UIViewController {
         navigationController?.navigationBar.compactAppearance = appearance
         navigationController?.navigationBar.tintColor = .systemBlue
         
-        // 添加右上角按钮
         let addButton = UIBarButtonItem(image: UIImage(systemName: "plus.circle.fill"), style: .plain, target: self, action: #selector(addSourceButtonTapped))
         navigationItem.rightBarButtonItem = addButton
     }
     
-    // MARK: - 分段控制切换
     
     @objc private func segmentChanged(_ sender: UISegmentedControl) {
         if sender.selectedSegmentIndex == 0 {
-            // 网站源 - 切换到WebcloudCollectionViewController
             let webcloudVC = WebcloudCollectionViewController()
-            // 保持相同的导航控制器，只替换当前视图控制器
             navigationController?.setViewControllers([webcloudVC], animated: false)
         } else {
-            // 软件源 - 当前页面，刷新数据
             loadSavedSources()
         }
     }
     
-    // 添加空状态视图
     private func setupEmptyStateView() {
         if sources.isEmpty {
             if emptyStateView == nil {
@@ -175,7 +152,6 @@ class CloudCollectionViewController: UIViewController {
                 addButton.tintColor = .white
                 addButton.layer.cornerRadius = 20
                 
-                // 使用新API替代废弃的contentEdgeInsets
                 if #available(iOS 15.0, *) {
                     var config = UIButton.Configuration.filled()
                     config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20)
@@ -216,10 +192,8 @@ class CloudCollectionViewController: UIViewController {
         collectionView.refreshControl?.endRefreshing()
     }
     
-    // MARK: - 数据操作
     
     private func loadSavedSources() {
-        // 从UserDefaults加载保存的源
         if let savedSources = UserDefaults.standard.array(forKey: "savedSources") as? [[String: String]] {
             sources = savedSources.compactMap { sourceDict in
                 guard let name = sourceDict["name"],
@@ -234,7 +208,6 @@ class CloudCollectionViewController: UIViewController {
     }
     
     private func saveSource(source: SourceCard) {
-        // 转换为字典并保存到UserDefaults
         var sourcesArray = UserDefaults.standard.array(forKey: "savedSources") as? [[String: String]] ?? []
         let sourceDict: [String: String] = [
             "name": source.name,
@@ -242,7 +215,6 @@ class CloudCollectionViewController: UIViewController {
             "iconURL": source.iconURL ?? ""
         ]
         
-        // 检查是否已存在相同URL的源
         if !sourcesArray.contains(where: { $0["sourceURL"] == source.sourceURL }) {
             sourcesArray.append(sourceDict)
             UserDefaults.standard.set(sourcesArray, forKey: "savedSources")
@@ -251,7 +223,6 @@ class CloudCollectionViewController: UIViewController {
         }
     }
     
-    // MARK: - 操作响应
     
     @objc private func addSourceButtonTapped() {
         let alertController = UIAlertController(title: "添加软件源", message: "请输入软件源链接", preferredStyle: .alert)
@@ -280,7 +251,6 @@ class CloudCollectionViewController: UIViewController {
     }
     
     private func fetchSourceInfo(sourceURL: String) {
-        // 显示加载指示器，使用现代的加载样式
         let loadingView = UIView(frame: view.bounds)
         loadingView.backgroundColor = UIColor.black.withAlphaComponent(0.3)
         loadingView.alpha = 0
@@ -312,7 +282,6 @@ class CloudCollectionViewController: UIViewController {
             loadingView.alpha = 1.0
         }
         
-        // 创建URL请求
         guard let url = URL(string: sourceURL) else {
             UIView.animate(withDuration: 0.3, animations: {
                 loadingView.alpha = 0
@@ -323,10 +292,8 @@ class CloudCollectionViewController: UIViewController {
             return
         }
         
-        // 获取UDID (如果有)
         let udid = UserDefaults.standard.string(forKey: "deviceUDID") ?? ""
         
-        // 构建带UDID的请求URL
         var urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: true)
         if !udid.isEmpty {
             var queryItems = urlComponents?.queryItems ?? []
@@ -344,7 +311,6 @@ class CloudCollectionViewController: UIViewController {
             return
         }
         
-        // 发起网络请求
         URLSession.shared.dataTask(with: requestURL) { [weak self] data, response, error in
             DispatchQueue.main.async {
                 UIView.animate(withDuration: 0.3, animations: {
@@ -363,11 +329,9 @@ class CloudCollectionViewController: UIViewController {
                     }
                     
                     do {
-                        // 解析JSON数据
                         let decoder = JSONDecoder()
                         let storeData = try decoder.decode(AppStoreData.self, from: data)
                         
-                        // 创建并保存源卡片
                         let sourceCard = SourceCard(
                             name: storeData.name,
                             sourceURL: sourceURL,
@@ -375,7 +339,6 @@ class CloudCollectionViewController: UIViewController {
                         )
                         self?.saveSource(source: sourceCard)
                         
-                        // 显示源添加成功提示
                         let successAlert = UIAlertController(
                             title: "添加成功",
                             message: "成功添加软件源: \(storeData.name)",
@@ -384,7 +347,6 @@ class CloudCollectionViewController: UIViewController {
                         successAlert.addAction(UIAlertAction(title: "确定", style: .default))
                         self?.present(successAlert, animated: true)
                         
-                        // 如果有公告消息，显示公告
                         if !storeData.message.isEmpty {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                                 let messageAlert = UIAlertController(
@@ -412,7 +374,6 @@ class CloudCollectionViewController: UIViewController {
     }
 }
 
-// MARK: - UICollectionView 数据源与代理
 
 extension CloudCollectionViewController: UICollectionViewDelegate, UICollectionViewDataSource {
     
@@ -433,13 +394,11 @@ extension CloudCollectionViewController: UICollectionViewDelegate, UICollectionV
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let source = sources[indexPath.item]
         
-        // 创建并推送应用列表视图控制器
         let listVC = ListCollectionViewController(sourceURL: source.sourceURL, sourceName: source.name)
         navigationController?.pushViewController(listVC, animated: true)
     }
 }
 
-// MARK: - 自定义集合视图单元格
 
 class SourceCollectionViewCell: UICollectionViewCell {
     
@@ -458,12 +417,10 @@ class SourceCollectionViewCell: UICollectionViewCell {
     }
     
     private func setupUI() {
-        // 设置卡片外观
         contentView.backgroundColor = .secondarySystemGroupedBackground
         contentView.layer.cornerRadius = 16
         contentView.layer.masksToBounds = true
         
-        // 添加阴影效果
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOffset = CGSize(width: 0, height: 2)
         layer.shadowRadius = 6
@@ -471,7 +428,6 @@ class SourceCollectionViewCell: UICollectionViewCell {
         layer.masksToBounds = false
         layer.cornerRadius = 16
         
-        // 图标
         iconImageView.contentMode = .scaleAspectFit
         iconImageView.layer.cornerRadius = 22
         iconImageView.layer.masksToBounds = true
@@ -479,14 +435,12 @@ class SourceCollectionViewCell: UICollectionViewCell {
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(iconImageView)
         
-        // 名称标签
         nameLabel.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
         nameLabel.textAlignment = .left
         nameLabel.textColor = .label
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(nameLabel)
         
-        // URL标签
         urlLabel.font = UIFont.systemFont(ofSize: 14)
         urlLabel.textColor = .secondaryLabel
         urlLabel.textAlignment = .left
@@ -494,14 +448,12 @@ class SourceCollectionViewCell: UICollectionViewCell {
         urlLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(urlLabel)
         
-        // 添加右箭头图标
         arrowImageView.image = UIImage(systemName: "chevron.right")
         arrowImageView.tintColor = .tertiaryLabel
         arrowImageView.contentMode = .scaleAspectFit
         arrowImageView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(arrowImageView)
         
-        // 设置约束
         NSLayoutConstraint.activate([
             iconImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             iconImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
@@ -528,7 +480,6 @@ class SourceCollectionViewCell: UICollectionViewCell {
         nameLabel.text = source.name
         urlLabel.text = source.sourceURL
         
-        // 加载图标（如果有）
         if let iconURLString = source.iconURL, let iconURL = URL(string: iconURLString) {
             URLSession.shared.dataTask(with: iconURL) { [weak self] data, _, _ in
                 if let data = data, let image = UIImage(data: data) {
@@ -538,7 +489,6 @@ class SourceCollectionViewCell: UICollectionViewCell {
                 }
             }.resume()
         } else {
-            // 使用默认图标
             iconImageView.image = UIImage(systemName: "cloud.fill")
             iconImageView.tintColor = .systemBlue
         }
@@ -550,9 +500,7 @@ class SourceCollectionViewCell: UICollectionViewCell {
     }
 }
 
-// MARK: - 数据模型
 
-// 软件源数据模型
 struct AppStoreData: Codable {
     let name: String
     let message: String
@@ -564,7 +512,6 @@ struct AppStoreData: Codable {
     let apps: [App]
 }
 
-// 应用数据模型
 struct App: Codable {
     let name: String
     let type: Int
@@ -583,7 +530,6 @@ struct App: Codable {
     }
 }
 
-// 解锁响应模型
 struct UnlockResponse: Codable {
     let code: Int
     let msg: String

@@ -1,14 +1,7 @@
-//
-//  webcloudCollectionViewController.swift
-//  mantou
-//
-//  Created by mantou on 2025/3/30.
-//
 
 import UIKit
 import WebKit
 
-// 网站链接卡片模型
 struct WebsiteCard {
     let name: String
     let url: String
@@ -17,7 +10,6 @@ struct WebsiteCard {
 
 class WebcloudCollectionViewController: UIViewController {
     
-    // MARK: - 属性
     
     private var collectionView: UICollectionView!
     private var websites: [WebsiteCard] = []
@@ -27,10 +19,8 @@ class WebcloudCollectionViewController: UIViewController {
     private var isLoading = false
     private let loadingIndicator = UIActivityIndicatorView(style: .large)
     
-    // 用于在同一个TabBar页面切换的分段控制
     private let segmentedControl = UISegmentedControl(items: ["网站源", "软件源"])
     
-    // MARK: - 生命周期方法
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -46,23 +36,19 @@ class WebcloudCollectionViewController: UIViewController {
             fetchWebsiteData()
         }
         
-        // 确保选择了"网站源"标签
         segmentedControl.selectedSegmentIndex = 0
     }
     
-    // MARK: - UI设置
     
     private func setupUI() {
         view.backgroundColor = .systemBackground
         
-        // 设置CollectionView布局
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .vertical
         layout.minimumLineSpacing = 20
         layout.minimumInteritemSpacing = 16
         layout.sectionInset = UIEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
         
-        // 计算每行显示的卡片数量和大小
         let screenWidth = UIScreen.main.bounds.width
         let itemsPerRow: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 3 : 2
         let availableWidth = screenWidth - layout.sectionInset.left - layout.sectionInset.right - (itemsPerRow - 1) * layout.minimumInteritemSpacing
@@ -70,7 +56,6 @@ class WebcloudCollectionViewController: UIViewController {
         let itemHeight: CGFloat = 160 // 增加卡片高度以适应图片
         layout.itemSize = CGSize(width: itemWidth, height: itemHeight)
         
-        // 创建CollectionView
         collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
         collectionView.backgroundColor = .systemGroupedBackground
         collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -81,13 +66,11 @@ class WebcloudCollectionViewController: UIViewController {
         collectionView.contentInset = UIEdgeInsets(top: 50, left: 0, bottom: 0, right: 0) // 为分段控制留出空间
         view.addSubview(collectionView)
         
-        // 添加下拉刷新控件
         let refreshControl = UIRefreshControl()
         refreshControl.tintColor = .systemBlue
         refreshControl.addTarget(self, action: #selector(refreshWebsites), for: .valueChanged)
         collectionView.refreshControl = refreshControl
         
-        // 配置加载指示器
         loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
         loadingIndicator.hidesWhenStopped = true
         loadingIndicator.color = .systemBlue
@@ -122,7 +105,6 @@ class WebcloudCollectionViewController: UIViewController {
         title = "网站导航"
         navigationController?.navigationBar.prefersLargeTitles = true
         
-        // 设置导航栏样式
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = .systemBackground
@@ -134,12 +116,10 @@ class WebcloudCollectionViewController: UIViewController {
         navigationController?.navigationBar.compactAppearance = appearance
         navigationController?.navigationBar.tintColor = .systemBlue
         
-        // 添加刷新按钮
         let refreshButton = UIBarButtonItem(image: UIImage(systemName: "arrow.clockwise"), style: .plain, target: self, action: #selector(refreshWebsites))
         navigationItem.rightBarButtonItem = refreshButton
     }
     
-    // 添加空状态视图
     private func setupEmptyStateView() {
         if websites.isEmpty && !isLoading {
             if emptyStateView == nil {
@@ -212,17 +192,13 @@ class WebcloudCollectionViewController: UIViewController {
     
     @objc private func segmentChanged(_ sender: UISegmentedControl) {
         if sender.selectedSegmentIndex == 0 {
-            // 网站源 - 当前页面
             fetchWebsiteData()
         } else {
-            // 软件源 - 切换到CloudCollectionViewController
             let cloudVC = CloudCollectionViewController()
-            // 保持相同的导航控制器，只替换当前视图控制器
             navigationController?.setViewControllers([cloudVC], animated: false)
         }
     }
     
-    // MARK: - 数据获取
     
     private func fetchWebsiteData() {
         guard !isLoading else { return }
@@ -268,14 +244,12 @@ class WebcloudCollectionViewController: UIViewController {
                         
                         var newWebsites: [WebsiteCard] = []
                         
-                        // 解析更新后的JSON结构，支持图片
                         for (name, details) in socialLinks {
                             if let detailsDict = details as? [String: String] {
                                 let url = detailsDict["url"] ?? ""
                                 let imageURL = detailsDict["image"] ?? ""
                                 newWebsites.append(WebsiteCard(name: name, url: url, imageURL: imageURL))
                             } else if let url = details as? String {
-                                // 向下兼容旧格式
                                 newWebsites.append(WebsiteCard(name: name, url: url, imageURL: nil))
                             }
                         }
@@ -304,7 +278,6 @@ class WebcloudCollectionViewController: UIViewController {
     }
 }
 
-// MARK: - UICollectionViewDataSource, UICollectionViewDelegate
 
 extension WebcloudCollectionViewController: UICollectionViewDataSource, UICollectionViewDelegate {
     
@@ -324,7 +297,6 @@ extension WebcloudCollectionViewController: UICollectionViewDataSource, UICollec
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let website = websites[indexPath.item]
         
-        // 创建WebDetailCollectionViewController并显示所选网站
         let webDetailVC = WebDetailCollectionViewController()
         webDetailVC.websiteURL = website.url
         webDetailVC.websiteName = website.name
@@ -332,7 +304,6 @@ extension WebcloudCollectionViewController: UICollectionViewDataSource, UICollec
     }
 }
 
-// MARK: - WebsiteCollectionViewCell
 
 class WebsiteCollectionViewCell: UICollectionViewCell {
     
@@ -355,14 +326,12 @@ class WebsiteCollectionViewCell: UICollectionViewCell {
         contentView.layer.cornerRadius = 12
         contentView.layer.masksToBounds = true
         
-        // 添加阴影效果
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOffset = CGSize(width: 0, height: 2)
         layer.shadowRadius = 4
         layer.shadowOpacity = 0.1
         layer.masksToBounds = false
         
-        // 网站图片
         websiteImageView.translatesAutoresizingMaskIntoConstraints = false
         websiteImageView.contentMode = .scaleAspectFill
         websiteImageView.layer.cornerRadius = 8
@@ -370,21 +339,18 @@ class WebsiteCollectionViewCell: UICollectionViewCell {
         websiteImageView.backgroundColor = .systemGray6
         contentView.addSubview(websiteImageView)
         
-        // 图标
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
         iconImageView.contentMode = .scaleAspectFit
         iconImageView.tintColor = .systemBlue
         iconImageView.image = UIImage(systemName: "globe")
         contentView.addSubview(iconImageView)
         
-        // 网站名称标签
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         nameLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
         nameLabel.textColor = .label
         nameLabel.numberOfLines = 2
         contentView.addSubview(nameLabel)
         
-        // URL标签
         urlLabel.translatesAutoresizingMaskIntoConstraints = false
         urlLabel.font = UIFont.systemFont(ofSize: 12)
         urlLabel.textColor = .secondaryLabel
@@ -392,24 +358,20 @@ class WebsiteCollectionViewCell: UICollectionViewCell {
         contentView.addSubview(urlLabel)
         
         NSLayoutConstraint.activate([
-            // 网站图片约束
             websiteImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
             websiteImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
             websiteImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
             websiteImageView.heightAnchor.constraint(equalToConstant: 80),
             
-            // 图标约束
             iconImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             iconImageView.topAnchor.constraint(equalTo: websiteImageView.bottomAnchor, constant: 12),
             iconImageView.widthAnchor.constraint(equalToConstant: 24),
             iconImageView.heightAnchor.constraint(equalToConstant: 24),
             
-            // 名称标签约束
             nameLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 12),
             nameLabel.topAnchor.constraint(equalTo: websiteImageView.bottomAnchor, constant: 10),
             nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             
-            // URL标签约束
             urlLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 12),
             urlLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 4),
             urlLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16)
@@ -420,9 +382,7 @@ class WebsiteCollectionViewCell: UICollectionViewCell {
         nameLabel.text = website.name
         urlLabel.text = website.url
         
-        // 设置图片
         if let imageURLString = website.imageURL, !imageURLString.isEmpty, let imageURL = URL(string: imageURLString) {
-            // 使用URLSession加载图片
             URLSession.shared.dataTask(with: imageURL) { [weak self] data, response, error in
                 guard let self = self, 
                       let data = data, 
@@ -435,7 +395,6 @@ class WebsiteCollectionViewCell: UICollectionViewCell {
                 }
             }.resume()
         } else {
-            // 设置默认图片
             websiteImageView.image = UIImage(systemName: "photo")
             websiteImageView.tintColor = .systemGray4
             websiteImageView.contentMode = .center

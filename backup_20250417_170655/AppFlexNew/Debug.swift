@@ -7,7 +7,6 @@ class Debug {
     
     func log(message: String) {
         #if DEBUG
-        print("[Debug] \(message)")
         #endif
     }
 } 

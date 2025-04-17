@@ -1,17 +1,12 @@
-// StoreModels.swift
-// 存储商店和资源部分共享的数据模型
-// Created by AppFlex Developer on 2025/4/28.
 
 import UIKit
 
-/// 资源卡片模型，用于展示内容资源和应用资源
 struct ResourceCard {
     let name: String
     let url: String
     let imageURL: String?
 }
 
-/// 资源卡片单元格，用于CollectionView中显示资源
 class ResourceCollectionViewCell: UICollectionViewCell {
     
     private let nameLabel = UILabel()

@@ -22,7 +22,6 @@ class AppDownload {
         let tempDirectory = FileManager.default.temporaryDirectory
         let destinationURL = tempDirectory.appendingPathComponent(fileName)
         
-        // 创建下载任务
         let downloadTask = URLSession.shared.downloadTask(with: url) { [weak self] (tempURL, response, error) in
             guard let self = self else { return }
             
@@ -42,12 +41,10 @@ class AppDownload {
             }
             
             do {
-                // 如果目标位置已存在文件，则先删除
                 if FileManager.default.fileExists(atPath: destinationURL.path) {
                     try FileManager.default.removeItem(at: destinationURL)
                 }
                 
-                // 将下载的文件从临时位置移动到目标位置
                 try FileManager.default.moveItem(at: tempURL, to: destinationURL)
                 
                 self.status = .completed

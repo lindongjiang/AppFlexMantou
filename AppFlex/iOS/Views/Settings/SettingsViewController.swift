@@ -46,7 +46,6 @@ class SettingsViewController: UIViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "SettingsCell")
     }
     
-    // 获取社区链接
     private func fetchCommunityLinks() {
         guard let url = URL(string: jsonURL) else { return }
         
@@ -63,32 +62,26 @@ class SettingsViewController: UIViewController {
                     
                     self.communityLinks = socialLinks
                     
-                    // 更新社区链接部分
                     DispatchQueue.main.async {
                         self.settings[0] = Array(self.communityLinks.keys)
                         self.tableView.reloadData()
                     }
                 }
             } catch {
-                // 静默处理错误
             }
         }.resume()
     }
     
-    // 打开社区链接
     private func openCommunityLink(_ url: String) {
         guard let url = URL(string: url) else {
             showAlert(title: "错误", message: "无效的URL")
             return
         }
         
-        // 检查URL类型
         if url.absoluteString.contains("http") {
-            // 网页链接使用SFSafariViewController打开
             let safariVC = SFSafariViewController(url: url)
             present(safariVC, animated: true)
         } else {
-            // 其他类型的URL使用UIApplication打开
             if UIApplication.shared.canOpenURL(url) {
                 UIApplication.shared.open(url)
             } else {
@@ -114,12 +107,10 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        // 社区链接部分使用自定义样式
         let cell = UITableViewCell(style: .default, reuseIdentifier: "CommunityCell")
         let linkName = settings[indexPath.section][indexPath.row] as! String
         cell.textLabel?.text = linkName
         
-        // 根据链接类型设置不同的图标
         if let url = communityLinks[linkName] {
             if url.contains("qrr.jpg") {
                 cell.imageView?.image = UIImage(systemName: "qrcode")
@@ -144,7 +135,6 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
-        // 处理社区链接
         let linkName = settings[indexPath.section][indexPath.row] as! String
         if let linkURL = communityLinks[linkName] {
             openCommunityLink(linkURL)

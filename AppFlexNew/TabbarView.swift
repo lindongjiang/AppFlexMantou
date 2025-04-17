@@ -1,24 +1,13 @@
-//
-//  TabbarController.swift
-//  mantou
-//
-//  Created by samara on 5/17/24.
-//  Copyright (c) 2024 Samara M (khcrysalis)
-//
 
 import SwiftUI
 import UIKit
 
-// 仅为了编译而提供临时类，避免重复声明
 #if DEBUG
 class LibraryViewController: UIViewController {}
-// 移除SettingsViewController的临时声明，因为已经创建了真正的类
 #endif
 
-// 添加String扩展支持localized方法
 extension String {
 	static func localized(_ key: String) -> String {
-		// 简单实现，直接返回一些常见的本地化文本
 		switch key {
 		case "TAB_SETTINGS":
 			return "设置"

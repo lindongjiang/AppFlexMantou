@@ -12,7 +12,6 @@ class UDIDSettingsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // 获取当前UDID信息
         currentUDID = ServerController.shared.getCurrentUDID()
         isCustomUDID = ServerController.shared.hasCustomUDID()
         
@@ -20,7 +19,6 @@ class UDIDSettingsViewController: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
         
-        // 添加键盘隐藏手势
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         view.addGestureRecognizer(tapGesture)
     }
@@ -29,7 +27,6 @@ class UDIDSettingsViewController: UIViewController {
         view.backgroundColor = .systemBackground
         title = "设备UDID设置"
         
-        // 设置表格视图
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
         
@@ -43,7 +40,6 @@ class UDIDSettingsViewController: UIViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "UDIDCell")
         tableView.register(TextFieldTableViewCell.self, forCellReuseIdentifier: "TextFieldCell")
         
-        // 添加保存按钮
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "保存", style: .done, target: self, action: #selector(saveUDID))
     }
     
@@ -53,13 +49,11 @@ class UDIDSettingsViewController: UIViewController {
             return
         }
         
-        // 验证UDID格式
         if !isValidUDID(udid) {
             showAlert(title: "错误", message: "UDID格式不正确，请输入有效的UDID")
             return
         }
         
-        // 保存UDID
         ServerController.shared.saveCustomUDID(udid)
         showAlert(title: "成功", message: "UDID已保存", completion: { [weak self] _ in
             self?.navigationController?.popViewController(animated: true)
@@ -91,8 +85,6 @@ class UDIDSettingsViewController: UIViewController {
     }
     
     private func isValidUDID(_ udid: String) -> Bool {
-        // 简单验证：UDID应该是一个UUID格式的字符串，或者是设备的唯一标识符
-        // 这里仅做长度和基本格式检查
         let pattern = "^[A-Fa-f0-9]{8,40}$" // 8-40个十六进制字符
         let regex = try? NSRegularExpression(pattern: pattern)
         let range = NSRange(location: 0, length: udid.utf16.count)
@@ -120,7 +112,6 @@ extension UDIDSettingsViewController: UITableViewDataSource, UITableViewDelegate
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.section == 0 {
-            // 当前UDID信息
             let cell = tableView.dequeueReusableCell(withIdentifier: "UDIDCell", for: indexPath)
             cell.textLabel?.text = currentUDID
             cell.textLabel?.numberOfLines = 0
@@ -130,7 +121,6 @@ extension UDIDSettingsViewController: UITableViewDataSource, UITableViewDelegate
             return cell
         } else {
             if indexPath.row == 0 {
-                // UDID输入
                 let cell = tableView.dequeueReusableCell(withIdentifier: "TextFieldCell", for: indexPath) as! TextFieldTableViewCell
                 cell.configure(placeholder: "输入设备UDID", keyboardType: .asciiCapable)
                 udidTextField.text = isCustomUDID ? currentUDID : ""
@@ -141,7 +131,6 @@ extension UDIDSettingsViewController: UITableViewDataSource, UITableViewDelegate
                 cell.textField = udidTextField
                 return cell
             } else {
-                // 清除UDID按钮
                 let cell = tableView.dequeueReusableCell(withIdentifier: "UDIDCell", for: indexPath)
                 cell.textLabel?.text = "恢复系统默认UDID"
                 cell.textLabel?.textColor = .systemRed
@@ -168,10 +157,8 @@ extension UDIDSettingsViewController: UITableViewDataSource, UITableViewDelegate
         tableView.deselectRow(at: indexPath, animated: true)
         
         if indexPath.section == 0 {
-            // 复制当前UDID
             copyUDID()
         } else if indexPath.section == 1 && indexPath.row == 1 {
-            // 清除UDID
             clearUDID()
         }
     }

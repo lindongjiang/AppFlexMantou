@@ -1,16 +1,9 @@
-//
-//  webcloudCollectionViewController.swift
-//  mantou
-//
-//  Created by mantou on 2025/3/30.
-//
 
 import UIKit
 import WebKit
 
 class WebcloudCollectionViewController: UIViewController {
     
-    // MARK: - 属性
     
     private var collectionView: UICollectionView!
     private var resources: [ResourceCard] = []
@@ -26,7 +19,6 @@ class WebcloudCollectionViewController: UIViewController {
     
     private let segmentedControl = UISegmentedControl(items: ["内容资源", "应用资源"])
     
-    // MARK: - 生命周期方法
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -45,7 +37,6 @@ class WebcloudCollectionViewController: UIViewController {
         segmentedControl.selectedSegmentIndex = 0
     }
     
-    // MARK: - UI设置
     
     private func setupUI() {
         view.backgroundColor = .systemBackground
@@ -206,7 +197,6 @@ class WebcloudCollectionViewController: UIViewController {
         }
     }
     
-    // MARK: - 数据获取
     
     private func fetchResourceData() {
         guard !isLoading else { return }
@@ -286,7 +276,6 @@ class WebcloudCollectionViewController: UIViewController {
     }
 }
 
-// MARK: - UICollectionViewDataSource, UICollectionViewDelegate
 
 extension WebcloudCollectionViewController: UICollectionViewDataSource, UICollectionViewDelegate {
     
