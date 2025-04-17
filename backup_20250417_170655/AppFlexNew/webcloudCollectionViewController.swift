@@ -23,26 +23,7 @@ class WebcloudCollectionViewController: UIViewController {
     private var websites: [WebsiteCard] = []
     private let cellIdentifier = "WebsiteCell"
     private var emptyStateView: UIView?
-    
-    private var jsonURL: String {
-        // 使用ASCII字节码定义域名和路径，避免明文字符串
-        let domain = [117, 110, 105, 46, 99, 108, 111, 117, 100, 109, 97, 110, 116, 111, 117, 98, 46, 111, 110, 108, 105, 110, 101] // uni.cloudmantoub.online
-        let path = [119, 101, 98, 115, 111, 117, 114, 99, 101, 46, 106, 115, 111, 110] // websource.json
-        let protocolBytes = [104, 116, 116, 112, 115, 58, 47, 47] // https://
-        
-        // 转换为UInt8数组以解决类型歧义
-        let protocolData = Data(protocolBytes.map { UInt8($0) })
-        let domainData = Data(domain.map { UInt8($0) })
-        let pathData = Data(path.map { UInt8($0) })
-        
-        // 构建URL字符串
-        let protocolStr = String(data: protocolData, encoding: .ascii)!
-        let domainStr = String(data: domainData, encoding: .ascii)!
-        let pathStr = String(data: pathData, encoding: .ascii)!
-        
-        return protocolStr + domainStr + "/" + pathStr
-    }
-    
+    private let jsonURL = "https://uni.cloudmantoub.online/websource.json"
     private var isLoading = false
     private let loadingIndicator = UIActivityIndicatorView(style: .large)
     

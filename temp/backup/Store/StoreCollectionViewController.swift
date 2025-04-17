@@ -107,9 +107,7 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         return globalDeviceUUID ?? KeychainUUID.getUUID()
     }
     
-    private var baseURL: String {
-        return AppSecurityManager.shared.buildAPIURL(path: "/api/client")
-    }
+    private let baseURL = "https://renmai.cloudmantoub.online/api/client"
     
     private var udidLabel: UILabel!
     
@@ -919,109 +917,6 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         return CGSize(width: width, height: height)
     }
 
-    // 添加一个方法来处理服务器返回的plist链接，格式可能是加密数据
-    private func processPlistLink(_ plistLink: String) -> String {
-        // 1. 如果链接是直接的URL，无需处理
-        if plistLink.lowercased().hasPrefix("http") {
-            return plistLink
-        }
-        
-        // 2. 如果链接是相对路径，添加基础URL
-        if plistLink.hasPrefix("/") {
-            // 检查是否是API plist格式的路径（检查格式：/api/plist/<IV>/<加密数据>）
-            if plistLink.hasPrefix("/api/plist/") {
-                let components = plistLink.components(separatedBy: "/")
-                if components.count >= 5 {
-                    // 应该有格式：["", "api", "plist", "<IV>", "<加密数据>"]
-                    let fullURL = AppSecurityManager.shared.buildAPIURL(path: plistLink)
-                    return fullURL
-                }
-            }
-            
-            // 普通相对路径
-            let fullURL = AppSecurityManager.shared.buildAPIURL(path: plistLink)
-            return fullURL
-        }
-        
-        // 3. 如果链接可能是加密数据，尝试解密
-        do {
-            // 先尝试解析为JSON
-            if let data = plistLink.data(using: .utf8),
-               let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                
-                // 检查是否包含加密所需的IV和data字段
-                if let iv = json["iv"] as? String,
-                   let encryptedData = json["data"] as? String {
-                    
-                    if let decryptedURL = AppSecurityManager.shared.decryptString(encryptedData: encryptedData, iv: iv) {
-                        return decryptedURL
-                    }
-                }
-            }
-        } catch {
-            // 处理解析错误
-        }
-        
-        // 4. 如果链接看起来像是从特定API返回的加密链接格式
-        if plistLink.contains("/api/plist/") && plistLink.contains("/") {
-            // 这可能是已经格式化好的加密plist链接
-            let fullURL = plistLink.hasPrefix("http") ? plistLink : AppSecurityManager.shared.buildAPIURL(path: plistLink)
-            return fullURL
-        }
-        
-        // 5. 尝试从链接中提取IV和加密数据（如果格式是：<IV>/<加密数据>）
-        let components = plistLink.components(separatedBy: "/")
-        if components.count == 2 {
-            let possibleIV = components[0]
-            let possibleData = components[1]
-            
-            let (valid, _) = CryptoUtils.shared.validateFormat(encryptedData: possibleData, iv: possibleIV)
-            if valid {
-                let apiPath = "/api/plist/\(possibleIV)/\(possibleData)"
-                let fullURL = AppSecurityManager.shared.buildAPIURL(path: apiPath)
-                return fullURL
-            }
-        }
-        
-        // 6. 如果以上都不匹配，直接返回原始链接
-        return plistLink
-    }
-    
-    // 新增：加密安装URL的方法
-    private func encryptInstallURL(plistURL: String) -> [String: String]? {
-        // 使用安全管理器加密安装URL
-        return AppSecurityManager.shared.buildAndEncryptInstallURL(plistURL: plistURL)
-    }
-    
-    // 添加一个方法来验证plist URL
-    private func verifyPlistURL(_ urlString: String) {
-        guard let url = URL(string: urlString) else {
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "HEAD" // 只获取头信息，不下载内容
-        request.timeoutInterval = 10
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            // 此处不再需要验证处理，简化为空实现
-        }.resume()
-    }
-    
-    // 新增：解密并打开安装URL的方法
-    private func decryptAndOpenInstallURL(encryptedData: [String: String]) {
-        guard let iv = encryptedData["iv"], 
-              let data = encryptedData["data"],
-              let decryptedURL = AppSecurityManager.shared.decryptString(encryptedData: data, iv: iv) else {
-            print("解密安装URL失败")
-            showError(title: "安装失败", message: "无法解析安装信息")
-            return
-        }
-        
-        // 使用现有的安全方法打开解密后的URL
-        safelyOpenInstallURL(decryptedURL)
-    }
-
     private func startInstallation(for app: AppData) {
         guard let plist = app.plist else {
             let alert = UIAlertController(
@@ -1043,21 +938,15 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
         // 验证plist URL
         verifyPlistURL(encodedPlistURL)
         
-        // 加密安装URL
-        guard let encryptedInstallURL = encryptInstallURL(plistURL: encodedPlistURL) else {
-            print("加密安装URL失败")
-            showError(title: "安装失败", message: "无法准备安装信息")
-            return
-        }
-        
-        print("已加密安装URL，准备进行安装")
+        // 构建安装URL
+        let installURLString = "itms-services://?action=download-manifest&url=\(encodedPlistURL)"
         
         // 判断应用是否可以直接安装
         // 免费应用(requires_key=0)或已解锁的应用(isUnlocked=true)都可以直接安装
         if app.requires_key == 0 || ((app.requiresUnlock ?? false) && (app.isUnlocked ?? false)) {
             // 免费或已解锁的应用，直接安装
-            // 使用解密并打开URL的方法
-            decryptAndOpenInstallURL(encryptedData: encryptedInstallURL)
+            // 使用新的安全方法打开URL
+            safelyOpenInstallURL(installURLString)
         } else {
             // 需要卡密且未解锁的应用，显示确认对话框
             let alert = UIAlertController(
@@ -1067,8 +956,8 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
             )
 
             let installAction = UIAlertAction(title: "安装", style: .default) { [weak self] _ in
-                // 使用解密并打开URL的方法
-                self?.decryptAndOpenInstallURL(encryptedData: encryptedInstallURL)
+                // 使用新的安全方法打开URL
+                self?.safelyOpenInstallURL(installURLString)
             }
             
             let cancelAction = UIAlertAction(title: "取消", style: .cancel, handler: nil)
@@ -1079,6 +968,89 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
                 self.present(alert, animated: true, completion: nil)
             }
         }
+    }
+
+    // 添加一个方法来处理服务器返回的plist链接，格式可能是加密数据
+    private func processPlistLink(_ plistLink: String) -> String {
+        // 1. 如果链接是直接的URL，无需处理
+        if plistLink.lowercased().hasPrefix("http") {
+            return plistLink
+        }
+        
+        // 2. 如果链接是相对路径，添加基础URL
+        if plistLink.hasPrefix("/") {
+            // 检查是否是API plist格式的路径（检查格式：/api/plist/<IV>/<加密数据>）
+            if plistLink.hasPrefix("/api/plist/") {
+                let components = plistLink.components(separatedBy: "/")
+                if components.count >= 5 {
+                    // 应该有格式：["", "api", "plist", "<IV>", "<加密数据>"]
+                    let fullURL = "https://renmai.cloudmantoub.online\(plistLink)"
+                    return fullURL
+                }
+            }
+            
+            // 普通相对路径
+            let fullURL = "https://renmai.cloudmantoub.online\(plistLink)"
+            return fullURL
+        }
+        
+        // 3. 如果链接可能是加密数据，尝试解密
+        do {
+            // 先尝试解析为JSON
+            if let data = plistLink.data(using: .utf8),
+               let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                
+                // 检查是否包含加密所需的IV和data字段
+                if let iv = json["iv"] as? String,
+                   let encryptedData = json["data"] as? String {
+                    
+                    if let decryptedURL = CryptoUtils.shared.decrypt(encryptedData: encryptedData, iv: iv) {
+                        return decryptedURL
+                    }
+                }
+            }
+        } catch {
+            // 处理解析错误
+        }
+        
+        // 4. 如果链接看起来像是从特定API返回的加密链接格式
+        if plistLink.contains("/api/plist/") && plistLink.contains("/") {
+            // 这可能是已经格式化好的加密plist链接
+            let fullURL = plistLink.hasPrefix("http") ? plistLink : "https://renmai.cloudmantoub.online\(plistLink)"
+            return fullURL
+        }
+        
+        // 5. 尝试从链接中提取IV和加密数据（如果格式是：<IV>/<加密数据>）
+        let components = plistLink.components(separatedBy: "/")
+        if components.count == 2 {
+            let possibleIV = components[0]
+            let possibleData = components[1]
+            
+            let (valid, _) = CryptoUtils.shared.validateFormat(encryptedData: possibleData, iv: possibleIV)
+            if valid {
+                let apiPath = "/api/plist/\(possibleIV)/\(possibleData)"
+                let fullURL = "https://renmai.cloudmantoub.online\(apiPath)"
+                return fullURL
+            }
+        }
+        
+        // 6. 如果以上都不匹配，直接返回原始链接
+        return plistLink
+    }
+    
+    // 添加一个方法来验证plist URL
+    private func verifyPlistURL(_ urlString: String) {
+        guard let url = URL(string: urlString) else {
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "HEAD" // 只获取头信息，不下载内容
+        request.timeoutInterval = 10
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            // 此处不再需要验证处理，简化为空实现
+        }.resume()
     }
 
     // 添加显示UDID帮助指南的方法
@@ -1612,10 +1584,10 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
     // 显示URL错误提示
     private func showURLErrorAlert(_ urlString: String) {
         let alertMessage = """
-        操作无法完成，可能原因：
-        1. 链接配置不正确
-        2. 数据格式错误
-        3. 系统安全限制
+        无法打开安装URL，可能原因：
+        1. URL格式不正确
+        2. URL长度过长(当前\(urlString.count)字符)
+        3. iOS限制了itms-services协议
         
         请联系开发者解决此问题。
         """
@@ -1626,7 +1598,7 @@ class StoreCollectionViewController: UICollectionViewController, UICollectionVie
             preferredStyle: .alert
         )
         
-        alert.addAction(UIAlertAction(title: "复制链接", style: .default) { _ in
+        alert.addAction(UIAlertAction(title: "复制URL", style: .default) { _ in
             UIPasteboard.general.string = urlString
         })
         

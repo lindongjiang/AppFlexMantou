@@ -8,7 +8,26 @@ class SettingsViewController: UIViewController {
     private var settings = [
         [] // 社交媒体链接将通过API动态填充
     ]
-    private let jsonURL = "https://uni.cloudmantoub.online/mantou.json"
+    
+    private var jsonURL: String {
+        // 使用ASCII字节码定义域名和路径，避免明文字符串
+        let domain = [117, 110, 105, 46, 99, 108, 111, 117, 100, 109, 97, 110, 116, 111, 117, 98, 46, 111, 110, 108, 105, 110, 101] // uni.cloudmantoub.online
+        let path = [109, 97, 110, 116, 111, 117, 46, 106, 115, 111, 110] // mantou.json
+        let protocolBytes = [104, 116, 116, 112, 115, 58, 47, 47] // https://
+        
+        // 转换为UInt8数组以解决类型歧义
+        let protocolData = Data(protocolBytes.map { UInt8($0) })
+        let domainData = Data(domain.map { UInt8($0) })
+        let pathData = Data(path.map { UInt8($0) })
+        
+        // 构建URL字符串
+        let protocolStr = String(data: protocolData, encoding: .ascii)!
+        let domainStr = String(data: domainData, encoding: .ascii)!
+        let pathStr = String(data: pathData, encoding: .ascii)!
+        
+        return protocolStr + domainStr + "/" + pathStr
+    }
+    
     private var socialLinks: [String: String] = [:]
     
     override func viewDidLoad() {

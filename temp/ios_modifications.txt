@@ -1,0 +1,1 @@
+请在iOS项目中修改StoreCollectionViewController.swift文件，主要修改startInstallation方法

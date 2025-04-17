@@ -1,0 +1,4 @@
+将以下内容替换到StoreCollectionViewController.swift文件中的相应方法
+1. 首先在文件顶部导入CommonCrypto
+import CommonCrypto  // 用于生成安全令牌
+2. 替换startInstallation方法:
